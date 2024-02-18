@@ -4,5 +4,5 @@
 
 ## Dependencies
 
-- scarb 2.4.4
+- scarb 2.5.3
 - starknet-foundry 0.15.0
