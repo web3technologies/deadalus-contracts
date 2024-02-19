@@ -172,7 +172,7 @@ class ContractDataWriter:
         
     
 def main():
-    parser = argparse.ArgumentParser(description='Example script to demonstrate command line argument parsing.')
+    parser = argparse.ArgumentParser(description='Script to deploy smart contracts.')
     parser.add_argument('--deploy-env', dest='deploy_env', type=str, help='Deployment environment (e.g., dev, int, prod)')
     args = parser.parse_args()
     current_time = datetime.now()
