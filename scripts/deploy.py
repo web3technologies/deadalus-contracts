@@ -43,10 +43,11 @@ class DeployerConfig:
         
 class DeployContract:
     
-    def __init__(self, contract_name, deployer_config: DeployerConfig):
+    def __init__(self, contract_name, deployer_config: DeployerConfig, constructor_args:dict = {}):
         self.contract_name = contract_name
         self.deployer_config = deployer_config
-        self.cwd = Path.cwd()
+        self.constructor_args = constructor_args
+        self.cwd = Path.cwd() / "deadalus-contracts"
         self.__get_package_name()
         self.__init__data()
         
@@ -74,9 +75,7 @@ class DeployContract:
         with open(self.cwd / f"target/dev/{self.module_name}_{self.contract_name}.contract_class.json", "r") as file:
             compiled_contract = file.read()
             
-        with open(self.cwd / f"target/dev/{self.module_name}.casm", "r") as file:
-            compiled_contract_casm = file.read()
-            
+        compiled_contract_casm = None
         return compiled_class_hash, compiled_contract, compiled_contract_casm
     
     async def declare(self, compiled_class_hash, compiled_contract, compiled_contract_casm):
@@ -84,7 +83,6 @@ class DeployContract:
         declare_result = await Contract.declare_v3(
             account=self.account, 
             compiled_contract=compiled_contract,
-            compiled_contract_casm=compiled_contract_casm, 
             compiled_class_hash=compiled_class_hash,
             auto_estimate=True
         )
@@ -95,7 +93,8 @@ class DeployContract:
         print("deploying")
         deploy_result = await declared_contract.deploy_v3(
             deployer_address=self.deployer_config.udc_address,
-            auto_estimate=True
+            auto_estimate=True,
+            constructor_args=self.constructor_args
         )
         await deploy_result.wait_for_acceptance()
         contract = deploy_result.deployed_contract
@@ -107,15 +106,40 @@ class DeployContract:
         contract = await self.deploy(declared_contract)
         print(hex(contract.address))
 
+
+class ContractInterations:
+    
+    def __init__(self, deployer_config: DeployerConfig) -> None:
+        self.deployer_config = deployer_config
+        self.key_pair = KeyPair.from_private_key(self.deployer_config.private_key)
+        self.client = FullNodeClient(node_url=self.deployer_config.node_url)
+        self.account = Account(
+            address=self.deployer_config.account_address,
+            client=self.client,
+            key_pair=self.key_pair,
+            chain=self.deployer_config.chain_id
+        )
+    
+    async def get_contract(self, address):
+        c = await Contract.from_address(address=address, provider=self.client)
+        print(c)
+    
+
 def main():
     deploy_env = config("DEPLOY_ENV")
     deployer_config = DeployerConfig.get_config(deploy_env)
     deployer = DeployContract(
-        contract_name="HelloStarknet", 
-        deployer_config=deployer_config
+        contract_name="ZToken", 
+        deployer_config=deployer_config,
+        constructor_args= {
+            "initial_supply": 10000, 
+            "recipient": ""
+        }
     )
-    asyncio.run(deployer.run())      
-
+    asyncio.run(deployer.run())
+    
+    # interactions = ContractInterations(deployer_config)
+    # asyncio.run(interactions.get_contract(""))
 
 if __name__ == "__main__":
     main()

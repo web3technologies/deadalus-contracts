@@ -2,6 +2,7 @@
 mod ExoToken {
     use openzeppelin::token::erc20::ERC20Component;
     use starknet::ContractAddress;
+    use starknet::get_caller_address;
 
     component!(path: ERC20Component, storage: erc20, event: ERC20Event);
 
@@ -33,11 +34,14 @@ mod ExoToken {
     }
 
     #[constructor]
-    fn constructor(ref self: ContractState, fixed_supply: u256, recipient: ContractAddress) {
+    fn constructor(
+        ref self: ContractState,
+        initial_supply: u256,
+        recipient: ContractAddress
+    ) {
         let name = 'Exo Token';
         let symbol = 'EXO';
-
         self.erc20.initializer(name, symbol);
-        self.erc20._mint(recipient, fixed_supply);
+        self.erc20._mint(recipient, initial_supply);
     }
 }
