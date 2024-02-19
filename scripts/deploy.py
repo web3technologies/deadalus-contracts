@@ -133,7 +133,7 @@ def main():
         deployer_config=deployer_config,
         constructor_args= {
             "initial_supply": 10000, 
-            "recipient": ""
+            "recipient": int(deployer_config.account_address, 16)       # must cast address string to int16
         }
     )
     asyncio.run(deployer.run())
