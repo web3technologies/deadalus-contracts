@@ -1,5 +1,6 @@
 import asyncio
 import argparse
+from datetime import datetime
 from pathlib import Path
 from decouple import config
 import toml
@@ -134,7 +135,7 @@ class DeployContract:
         casm_class_hash, compiled_contract, sierra_class_hash = self.read_contract_file_data()
         declared_contract, is_previously_declared = await self.get_contract(casm_class_hash, compiled_contract, sierra_class_hash)
         deployed_contract = await self.deploy(declared_contract, is_previously_declared, sierra_class_hash)
-        print(hex(deployed_contract.address))
+        return deployed_contract
 
 
 class ContractInterations:
@@ -153,25 +154,46 @@ class ContractInterations:
     async def get_contract(self, address):
         c = await Contract.from_address(address=address, provider=self.client)
         print(c)
+        
+class ContractDataWriter:
     
-
+    @staticmethod
+    def write_data(deploy_env, contract, contract_name, formatted_time):
+        print("writing file")
+        base_data_path = Path.cwd() / f"deadalus-contracts/deploy_output/{deploy_env}"
+        base_data_path.mkdir(parents=True, exist_ok=True)
+        file_data = {
+            "address": hex(contract.address),
+            "chain_id": repr(contract.account.signer.chain_id),
+            "abi": contract.data.abi
+        }
+        with open(base_data_path / f"{contract_name}_output_{formatted_time}.json", "w") as file:
+            json.dump(file_data, file, indent=4)
+        
+    
 def main():
     parser = argparse.ArgumentParser(description='Example script to demonstrate command line argument parsing.')
     parser.add_argument('--deploy-env', dest='deploy_env', type=str, help='Deployment environment (e.g., dev, int, prod)')
     args = parser.parse_args()
+    current_time = datetime.now()
+    formatted_time = current_time.strftime("%Y-%m-%d:%H:%M:%S")
     deployer_config = DeployerConfig.get_config(args.deploy_env)
+    contract_name = "ExoToken"
     deployer = DeployContract(
-        contract_name="ExoToken", 
+        contract_name=contract_name, 
         deployer_config=deployer_config,
-        constructor_args= {
+        constructor_args={
             "initial_supply": 10000, 
             "recipient": int(deployer_config.account_address, 16)       # must cast address string to int16
         }
     )
-    asyncio.run(deployer.run())
-    
-    # interactions = ContractInterations(deployer_config)
-    # asyncio.run(interactions.get_contract("0x55b812ce342bc3478955d553847c234a7d99146507597b6678d72a8163b3803"))
+    deployed_contract = asyncio.run(deployer.run())
+    ContractDataWriter.write_data(
+        deploy_env=args.deploy_env, 
+        contract=deployed_contract, 
+        contract_name=contract_name, 
+        formatted_time=formatted_time
+    )
 
 if __name__ == "__main__":
     main()
