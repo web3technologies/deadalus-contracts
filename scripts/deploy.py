@@ -1,15 +1,21 @@
 import asyncio
+import argparse
 from pathlib import Path
 from decouple import config
 import toml
+import json
 
 from starknet_py.contract import Contract
 from starknet_py.net.account.account import Account
 from starknet_py.net.full_node_client import FullNodeClient
 from starknet_py.net.signer.stark_curve_signer import KeyPair
 from starknet_py.net.models import StarknetChainId
+from starknet_py.net.client_models import SierraContractClass
 from starknet_py.hash.casm_class_hash import compute_casm_class_hash
-from starknet_py.common import create_casm_class
+from starknet_py.hash.sierra_class_hash import compute_sierra_class_hash
+from starknet_py.common import create_casm_class, create_sierra_compiled_contract
+from starknet_py.net.client_errors import ClientError
+
 from starknet_py.constants import DEFAULT_DEPLOYER_ADDRESS
 
 
@@ -69,42 +75,66 @@ class DeployContract:
     def read_contract_file_data(self):
         
         with open(self.cwd / f"target/dev/{self.module_name}_{self.contract_name}.compiled_contract_class.json", "r") as file:
-            casm_data = file.read()
-        compiled_class_hash = compute_casm_class_hash(create_casm_class(casm_data))
+            compiled_contract_class = file.read()
+        casm_class_hash = compute_casm_class_hash(create_casm_class(compiled_contract_class))
         
         with open(self.cwd / f"target/dev/{self.module_name}_{self.contract_name}.contract_class.json", "r") as file:
             compiled_contract = file.read()
+        sierra_class_hash = compute_sierra_class_hash(create_sierra_compiled_contract(compiled_contract=compiled_contract))
             
-        compiled_contract_casm = None
-        return compiled_class_hash, compiled_contract, compiled_contract_casm
+        return casm_class_hash, compiled_contract, sierra_class_hash
     
-    async def declare(self, compiled_class_hash, compiled_contract, compiled_contract_casm):
+    async def declare(self, casm_class_hash, compiled_contract):
         print("declaring") 
         declare_result = await Contract.declare_v3(
             account=self.account, 
             compiled_contract=compiled_contract,
-            compiled_class_hash=compiled_class_hash,
+            compiled_class_hash=casm_class_hash,
             auto_estimate=True
         )
         await declare_result.wait_for_acceptance()
         return declare_result
+    
+    async def get_contract(self, casm_class_hash, compiled_contract, sierra_class_hash) -> tuple[Contract | SierraContractClass, bool]:
+        is_previously_declared = False
+        try:
+            declared_contract = await self.client.get_class_by_hash(class_hash=sierra_class_hash)
+            print("contract previously declared")
+            is_previously_declared = True
+        except ClientError as e:
+            if e.code == 28 and e.message == 'Client failed with code 28. Message: Class hash not found.':
+                declared_contract = await self.declare(casm_class_hash, compiled_contract)
+            else:
+                raise e
+        return declared_contract, is_previously_declared
+        
 
-    async def deploy(self, declared_contract):
+    async def deploy(self, declared_contract, is_previously_declared, sierra_class_hash):
         print("deploying")
-        deploy_result = await declared_contract.deploy_v3(
-            deployer_address=self.deployer_config.udc_address,
-            auto_estimate=True,
-            constructor_args=self.constructor_args
-        )
+        if is_previously_declared:
+            deploy_result = await Contract.deploy_contract_v3(
+                account=self.account,
+                class_hash=sierra_class_hash,
+                deployer_address=self.deployer_config.udc_address,
+                abi=json.loads(declared_contract.abi),
+                constructor_args=self.constructor_args,
+                auto_estimate=True,
+            )
+        else:
+            deploy_result = await declared_contract.deploy_v3(
+                deployer_address=self.deployer_config.udc_address,
+                auto_estimate=True,
+                constructor_args=self.constructor_args
+            )
         await deploy_result.wait_for_acceptance()
         contract = deploy_result.deployed_contract
         return contract
         
     async def run(self):
-        compiled_class_hash, compiled_contract, compiled_contract_casm = self.read_contract_file_data()
-        declared_contract = await self.declare(compiled_class_hash, compiled_contract, compiled_contract_casm)
-        contract = await self.deploy(declared_contract)
-        print(hex(contract.address))
+        casm_class_hash, compiled_contract, sierra_class_hash = self.read_contract_file_data()
+        declared_contract, is_previously_declared = await self.get_contract(casm_class_hash, compiled_contract, sierra_class_hash)
+        deployed_contract = await self.deploy(declared_contract, is_previously_declared, sierra_class_hash)
+        print(hex(deployed_contract.address))
 
 
 class ContractInterations:
@@ -126,10 +156,12 @@ class ContractInterations:
     
 
 def main():
-    deploy_env = config("DEPLOY_ENV")
-    deployer_config = DeployerConfig.get_config(deploy_env)
+    parser = argparse.ArgumentParser(description='Example script to demonstrate command line argument parsing.')
+    parser.add_argument('--deploy-env', dest='deploy_env', type=str, help='Deployment environment (e.g., dev, int, prod)')
+    args = parser.parse_args()
+    deployer_config = DeployerConfig.get_config(args.deploy_env)
     deployer = DeployContract(
-        contract_name="ZToken", 
+        contract_name="ExoToken", 
         deployer_config=deployer_config,
         constructor_args= {
             "initial_supply": 10000, 
@@ -139,7 +171,7 @@ def main():
     asyncio.run(deployer.run())
     
     # interactions = ContractInterations(deployer_config)
-    # asyncio.run(interactions.get_contract(""))
+    # asyncio.run(interactions.get_contract("0x55b812ce342bc3478955d553847c234a7d99146507597b6678d72a8163b3803"))
 
 if __name__ == "__main__":
     main()
