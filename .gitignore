@@ -1,3 +1,7 @@
 target
 .snfoundry_cache/
-.env
+*.env
+
+venv/
+deploy_output/dev/
+deploy_output/int/
