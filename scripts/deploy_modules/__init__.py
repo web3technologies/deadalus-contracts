@@ -1,4 +1,4 @@
 from deploy_modules.deploy_contract import DeployContract
 from deploy_modules.deployer_config import DeployerConfig
 from deploy_modules.contract_data_writer import ContractDataWriter
-from deploy_modules.contract_interaction import ContractInteration
+from deploy_modules.contract_interaction import Erc20Contract
