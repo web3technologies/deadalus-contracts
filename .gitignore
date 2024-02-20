@@ -3,5 +3,6 @@ target
 *.env
 
 venv/
+__pycache__/
 deploy_output/dev/
 deploy_output/int/
