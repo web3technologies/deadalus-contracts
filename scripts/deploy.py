@@ -10,6 +10,9 @@ from deploy_modules import (
 )
 
 async def main(deploy_env):
+    """
+        main deployment script that will declare, deploy and write the contract data
+    """
     current_time = datetime.now()
     formatted_time = current_time.strftime("%Y-%m-%d:%H:%M:%S")
     deployer_config = DeployerConfig.get_config(deploy_env)
@@ -32,6 +35,9 @@ async def main(deploy_env):
 
 
 async def fund_account(deploy_env):
+    """
+        If using a dev network on local host we need to fund an argent or braavos account in order to interact with the smart contracts
+    """
     deployer_config = DeployerConfig.get_config(deploy_env)
     eth_address = int("0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7", 16)
     contract_interaction = Erc20Contract(deployer_config, contract_address=eth_address)

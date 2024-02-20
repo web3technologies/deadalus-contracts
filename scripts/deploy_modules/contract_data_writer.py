@@ -7,7 +7,7 @@ class ContractDataWriter:
     @staticmethod
     def write_data(deploy_env, contract, contract_name, formatted_time):
         print("writing file")
-        base_data_path = Path.cwd() / f"deadalus-contracts/deploy_output/{deploy_env}"
+        base_data_path = Path.cwd() / f"deadalus-interface/src/contracts/{deploy_env}"
         base_data_path.mkdir(parents=True, exist_ok=True)
         file_data = {
             "address": hex(contract.address),
