@@ -16,7 +16,7 @@ from starknet_py.hash.casm_class_hash import compute_casm_class_hash
 from starknet_py.hash.sierra_class_hash import compute_sierra_class_hash
 from starknet_py.common import create_casm_class, create_sierra_compiled_contract
 from starknet_py.net.client_errors import ClientError
-
+from starknet_py.contract import DeclareResult
 from starknet_py.constants import DEFAULT_DEPLOYER_ADDRESS
 
 
@@ -97,44 +97,35 @@ class DeployContract:
         return declare_result
     
     async def get_contract(self, casm_class_hash, compiled_contract, sierra_class_hash) -> tuple[Contract | SierraContractClass, bool]:
-        is_previously_declared = False
         try:
             declared_contract = await self.client.get_class_by_hash(class_hash=sierra_class_hash)
             print("contract previously declared")
-            is_previously_declared = True
         except ClientError as e:
             if e.code == 28 and e.message == 'Client failed with code 28. Message: Class hash not found.':
                 declared_contract = await self.declare(casm_class_hash, compiled_contract)
             else:
                 raise e
-        return declared_contract, is_previously_declared
+        return declared_contract
         
 
-    async def deploy(self, declared_contract, is_previously_declared, sierra_class_hash):
+    async def deploy(self, declared_contract, sierra_class_hash):
         print("deploying")
-        if is_previously_declared:
-            deploy_result = await Contract.deploy_contract_v3(
-                account=self.account,
-                class_hash=sierra_class_hash,
-                deployer_address=self.deployer_config.udc_address,
-                abi=json.loads(declared_contract.abi),
-                constructor_args=self.constructor_args,
-                auto_estimate=True,
-            )
-        else:
-            deploy_result = await declared_contract.deploy_v3(
-                deployer_address=self.deployer_config.udc_address,
-                auto_estimate=True,
-                constructor_args=self.constructor_args
-            )
+        deploy_result = await Contract.deploy_contract_v3(
+            account=self.account,
+            class_hash=sierra_class_hash,
+            deployer_address=self.deployer_config.udc_address,
+            abi=declared_contract._get_abi() if isinstance(declared_contract, DeclareResult) else json.loads(declared_contract.abi),
+            constructor_args=self.constructor_args,
+            auto_estimate=True,
+        )
         await deploy_result.wait_for_acceptance()
         contract = deploy_result.deployed_contract
         return contract
         
     async def run(self):
         casm_class_hash, compiled_contract, sierra_class_hash = self.read_contract_file_data()
-        declared_contract, is_previously_declared = await self.get_contract(casm_class_hash, compiled_contract, sierra_class_hash)
-        deployed_contract = await self.deploy(declared_contract, is_previously_declared, sierra_class_hash)
+        declared_contract = await self.get_contract(casm_class_hash, compiled_contract, sierra_class_hash)
+        deployed_contract = await self.deploy(declared_contract, sierra_class_hash)
         return deployed_contract
 
 
