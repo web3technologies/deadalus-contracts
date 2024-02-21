@@ -23,7 +23,7 @@ mod CounterFactory{
     #[storage]
     struct Storage{
         owner: ContractAddress,
-        counter_contracts: LegacyMap::<ContractAddress, u256>,
+        counter_contracts: LegacyMap::<ContractAddress, u128>,
         counter_contract_class_hash: ClassHash, // need this in order to deploy,
         counter_id: u128
     }
@@ -47,8 +47,9 @@ mod CounterFactory{
             );
             match deploy_result {
                 Result::Ok((_contract_address, _return_data)) =>{
-                    self.counter_contracts.write(_contract_address, 1);
-                    self.counter_id.write(self.counter_id.read() + 1);
+                    let mut counter_id = self.counter_id.read();
+                    self.counter_contracts.write(_contract_address, counter_id);
+                    self.counter_id.write(counter_id + 1);
                 },
                 Result::Err(_) => {
                     panic!("error in contract call");
