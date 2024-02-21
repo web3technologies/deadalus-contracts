@@ -31,12 +31,17 @@ mod Counter {
     #[abi(embed_v0)]
     impl Counter of ICounter<ContractState>{
         fn increment(ref self: ContractState){
+            assert(get_caller_address() == self.owner.read(), 'caller is not owner');
             self.count.write(self.count.read() + 1);
         }
         fn decrement(ref self: ContractState){
+            assert(get_caller_address() == self.owner.read(), 'caller is not owner');
             self.count.write(self.count.read() -1);
         }
         fn set_owner(ref self: ContractState, new_owner: ContractAddress){
+            // need to refine this logic
+            // should owner transfer ownership to factory or should factory be able to claim ownership in same function call
+            assert(get_caller_address() == self.owner.read(), 'caller is not owner');
             self.owner.write(new_owner)
         }
         fn get_count(self: @ContractState){
