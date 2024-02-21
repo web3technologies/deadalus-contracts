@@ -24,10 +24,9 @@ mod Counter {
     }
 
     #[constructor]
-    fn constructor(ref self: ContractState, _owner: ContractAddress){
-        self.owner.write(_owner);
+    fn constructor(ref self: ContractState){
+        self.owner.write(get_caller_address());
     }
-
 
     #[abi(embed_v0)]
     impl Counter of ICounter<ContractState>{

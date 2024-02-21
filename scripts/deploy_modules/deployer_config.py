@@ -20,7 +20,6 @@ class DeployerConfig:
                 account_address=config("DEV_ACCOUNT_ADDRESS"),
                 private_key=config("DEV_PRIVATE_KEY"),
                 node_url=config("DEV_NODE_URL"),
-                udc_address="0x41A78E741E5AF2FEC34B695679BC6891742439F7AFB8484ECD7766661AD02BF",
                 developer_account=config("DEVELOPER_ACCOUNT")       ## account created in Argent, Braavos etc
             )
         elif deploy_env == 'int':
