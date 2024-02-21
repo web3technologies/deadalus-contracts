@@ -1,2 +1,3 @@
-mod token;
 mod counter;
+mod vault;
+mod token;

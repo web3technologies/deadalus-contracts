@@ -1,0 +1,1 @@
+mod fraction_vault_factory;
