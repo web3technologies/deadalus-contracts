@@ -17,7 +17,11 @@ trait IFractionVaultFactory<TContractState>{
             contract_address: ContractAddress,
             // fraction_period: FractionPeriod
         );
+    fn call_function(ref self: TContractState, contract_address: ContractAddress, function_name: felt252, call_data: Array<felt252>);
+    fn add_function(ref self: TContractState, function_name: felt252, function_selector: felt252, require_owner: bool);
 }
+
+
 
 
 #[starknet::contract]
@@ -29,11 +33,22 @@ mod FractionVaultFactory {
     use starknet::ContractAddress;
     
     use starknet::get_caller_address;
+    use starknet::get_contract_address;
+    use starknet::call_contract_syscall;
 
     #[storage]
     struct Storage{
         owner: ContractAddress,
         erc20_token_class_hash: ClassHash,
+        counter_contracts_to_user: LegacyMap::<ContractAddress,ContractAddress>,
+        functions: LegacyMap::<felt252, ContractFunction> // map the function name to the function selector hash
+    }
+
+    #[derive(Drop)]
+    struct ContractFunction{
+        name: felt252,
+        selector: felt252,
+        require_owner: bool
     }
 
     #[constructor]
@@ -50,7 +65,40 @@ mod FractionVaultFactory {
                 contract_address: ContractAddress,
                 // fraction_period: FractionPeriod
             ){
+                // need to check to make sure the contract has not already been deposited
+                // assert(self.counter_contracts.read(contract_address) == 0, "contract has already been deposited");
+                self.counter_contracts_to_user.write(contract_address, get_caller_address());
+                let call_data = array![].span(); // need to access contract address to set as the owner
+                let result = call_contract_syscall(
+                    contract_address, 
+                    self.functions.read('set_owner').selector, 
+                    call_data
+                );
+                // should we create a liquidity pool automatically?
+        }
+        
+        fn call_function(
+            ref self: ContractState, 
+            contract_address: ContractAddress, 
+            function_name: felt252, 
+            call_data: Array<felt252>
+        ){
+            let function = self.functions.read(function_name);
+            let result = call_contract_syscall(
+                contract_address, 
+                function.selector, 
+                call_data.span()
+            );
+        }
 
+        fn add_function(ref self: ContractState, function_name: felt252, function_selector: felt252, require_owner: bool){
+            assert(get_caller_address() == self.owner.read(), 'caller is not owner');
+            let function = ContractFunction{
+                    name: function_name, 
+                    selector: function_selector,
+                    require_owner: require_owner
+            };
+            // self.functions.write(function_name, function_selector);
         }
     }
 
