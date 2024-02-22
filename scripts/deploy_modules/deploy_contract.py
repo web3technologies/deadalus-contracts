@@ -1,7 +1,7 @@
 from pathlib import Path
 import json
 
-from starknet_py.contract import Contract
+from starknet_py.contract import Contract, DeclareResult
 from .deployer_config import DeployerConfig
 
 
@@ -19,7 +19,7 @@ class DeployContract:
             account=self.deployer_config.account,
             class_hash=self.sierra_class_hash,
             deployer_address=self.deployer_config.udc_address,
-            abi=json.loads(self.declared_contract.abi),
+            abi=self.declared_contract._get_abi() if isinstance(self.declared_contract, DeclareResult) else json.loads(self.declared_contract.abi),
             constructor_args=self.constructor_args,
             auto_estimate=True,
         )
