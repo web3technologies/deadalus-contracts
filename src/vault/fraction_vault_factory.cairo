@@ -84,8 +84,12 @@ mod FractionVaultFactory {
             call_data: Array<felt252>
         ){
             let function = self.functions.read(function_name);
+            if function.require_owner{
+                let caller = get_caller_address();
+                assert(self.owner.read() == caller, 'caller is not owner');
+            }
             let result = call_contract_syscall(
-                contract_address, 
+                contract_address,     
                 function.selector, 
                 call_data.span()
             );
@@ -94,11 +98,11 @@ mod FractionVaultFactory {
         fn add_function(ref self: ContractState, function_name: felt252, function_selector: felt252, require_owner: bool){
             assert(get_caller_address() == self.owner.read(), 'caller is not owner');
             let function = ContractFunction{
-                    name: function_name, 
-                    selector: function_selector,
-                    require_owner: require_owner
+                name: function_name, 
+                selector: function_selector,
+                require_owner: require_owner
             };
-            // self.functions.write(function_name, function_selector);
+            self.functions.write(function_name, function);
         }
     }
 
