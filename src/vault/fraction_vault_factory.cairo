@@ -10,7 +10,7 @@ struct ContractFunction{
 }
 
 
-#[derive(Copy, Drop, starknet::Store)]
+#[derive(Copy, Drop, Serde, starknet::Store)]
 enum FractionPeriod {
    DAILY,
    MONTHLY,
@@ -23,7 +23,7 @@ trait IFractionVaultFactory<TContractState>{
         ref self: TContractState, 
             name: felt252, 
             contract_address: ContractAddress,
-            // fraction_period: FractionPeriod
+            fraction_period: FractionPeriod
         );
     fn call_function(ref self: TContractState, contract_address: ContractAddress, function_name: felt252, call_data: Array<felt252>);
     fn add_function(ref self: TContractState, function_name: felt252, function_selector: felt252, require_owner: bool);
@@ -34,12 +34,9 @@ trait IFractionVaultFactory<TContractState>{
 mod FractionVaultFactory {
 
     use super::{IFractionVaultFactory, FractionPeriod, ContractFunction};
-    use starknet::ClassHash;
-    use starknet::ContractAddress;
-    
-    use starknet::get_caller_address;
-    use starknet::get_contract_address;
-    use starknet::call_contract_syscall;
+    use starknet::{ClassHash, ContractAddress};
+    use starknet::{get_caller_address, get_contract_address, call_contract_syscall};
+
 
     #[storage]
     struct Storage{
@@ -61,18 +58,19 @@ mod FractionVaultFactory {
             ref self: ContractState, 
                 name: felt252, 
                 contract_address: ContractAddress,
-                // fraction_period: FractionPeriod
+                fraction_period: FractionPeriod
             ){
                 // need to check to make sure the contract has not already been deposited
                 // assert(self.counter_contracts.read(contract_address) == 0, "contract has already been deposited");
-                self.counter_contracts_to_user.write(contract_address, get_caller_address());
                 let call_data = array![].span(); // need to access contract address to set as the owner
                 let result = call_contract_syscall(
                     contract_address, 
                     self.functions.read('set_owner').selector, 
                     call_data
                 );
+                self.counter_contracts_to_user.write(contract_address, get_caller_address());
                 // should we create a liquidity pool automatically?
+                let token_supply = process_fraction_period(fraction_period);
         }
         
         fn call_function(
@@ -102,6 +100,16 @@ mod FractionVaultFactory {
             };
             self.functions.write(function_name, function);
         }
+    }
+
+
+    fn process_fraction_period(fraction_period: FractionPeriod) -> u256{
+        let value = match fraction_period{
+            FractionPeriod::DAILY => { 365_u256 },
+            FractionPeriod::MONTHLY => {12_u256},
+            FractionPeriod::YEARLY => {1_u256},
+        };
+        value
     }
 
 }
