@@ -2,12 +2,20 @@ use starknet::ContractAddress;
 use starknet::ClassHash;
 
 
+#[derive(Copy, Drop, starknet::Store)]
+struct ContractFunction{
+    name: felt252,
+    selector: felt252,
+    require_owner: bool
+}
+
+
+#[derive(Copy, Drop, starknet::Store)]
 enum FractionPeriod {
    DAILY,
    MONTHLY,
    YEARLY 
 }
-
 
 #[starknet::interface]
 trait IFractionVaultFactory<TContractState>{
@@ -22,13 +30,10 @@ trait IFractionVaultFactory<TContractState>{
 }
 
 
-
-
 #[starknet::contract]
 mod FractionVaultFactory {
 
-    use super::IFractionVaultFactory;
-    use super::FractionPeriod;
+    use super::{IFractionVaultFactory, FractionPeriod, ContractFunction};
     use starknet::ClassHash;
     use starknet::ContractAddress;
     
@@ -42,13 +47,6 @@ mod FractionVaultFactory {
         erc20_token_class_hash: ClassHash,
         counter_contracts_to_user: LegacyMap::<ContractAddress,ContractAddress>,
         functions: LegacyMap::<felt252, ContractFunction> // map the function name to the function selector hash
-    }
-
-    #[derive(Drop)]
-    struct ContractFunction{
-        name: felt252,
-        selector: felt252,
-        require_owner: bool
     }
 
     #[constructor]
