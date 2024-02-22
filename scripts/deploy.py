@@ -16,7 +16,7 @@ async def main(deploy_env):
     current_time = datetime.now()
     formatted_time = current_time.strftime("%Y-%m-%d:%H:%M:%S")
     deployer_config = DeployerConfig.get_config(deploy_env)
-    contract_name = "ExoToken"
+    contract_name = "ClaimToken"
     deployer = DeployContract(
         contract_name=contract_name, 
         deployer_config=deployer_config,

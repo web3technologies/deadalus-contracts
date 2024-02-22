@@ -1,5 +1,5 @@
 #[starknet::contract]
-mod ExoToken {
+mod ClaimToken {
     use openzeppelin::token::erc20::ERC20Component;
     use starknet::ContractAddress;
     use starknet::get_caller_address;
