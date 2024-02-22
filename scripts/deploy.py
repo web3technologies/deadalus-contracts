@@ -14,7 +14,8 @@ from deploy_modules import (
 CONTRACTS = [
     {
         "contract_name": "Counter",
-        "constructor_args": {}
+        "constructor_args": {},
+        "should_deploy": False
     }
 ]
 
@@ -36,19 +37,20 @@ async def main(deploy_env):
             sierra_class_hash
         )
         declared_contract = await declared_contract.get_contract()
-        deployer = DeployContract(
-            declared_contract,
-            deployer_config,
-            sierra_class_hash,
-            constructor_args=contract["constructor_args"]
-        )
-        deployed_contract = await deployer.deploy()
-        ContractDataWriter.write_data(
-            deploy_env=args.deploy_env, 
-            contract=deployed_contract, 
-            contract_name=contract["contract_name"], 
-            formatted_time=formatted_time
-        )
+        if contract["should_deploy"]:
+            deployer = DeployContract(
+                declared_contract,
+                deployer_config,
+                sierra_class_hash,
+                constructor_args=contract["constructor_args"]
+            )
+            deployed_contract = await deployer.deploy()
+            ContractDataWriter.write_data(
+                deploy_env=args.deploy_env, 
+                contract=deployed_contract, 
+                contract_name=contract["contract_name"], 
+                formatted_time=formatted_time
+            )
 
 
 async def fund_account(deploy_env):
