@@ -1,6 +1,9 @@
 from decouple import config
 from starknet_py.constants import DEFAULT_DEPLOYER_ADDRESS
 from starknet_py.net.models import StarknetChainId
+from starknet_py.net.account.account import Account
+from starknet_py.net.full_node_client import FullNodeClient
+from starknet_py.net.signer.stark_curve_signer import KeyPair
 
 
 class DeployerConfig:
@@ -12,6 +15,9 @@ class DeployerConfig:
         self.udc_address = udc_address
         self.chain_id=chain_id
         self.developer_account=developer_account
+        self.key_pair = None
+        self.client = None
+        self.account = None
         
     @classmethod
     def get_config(cls, deploy_env):
@@ -31,3 +37,15 @@ class DeployerConfig:
         else:
             raise ValueError(f"{deploy_env} is not available for deployment.")
         return dev_deployer_config
+    
+    
+    def init_account(self):
+        self.key_pair = KeyPair.from_private_key(self.private_key)
+        self.client = FullNodeClient(node_url=self.node_url)
+        self.account = Account(
+            address=self.account_address,
+            client=self.client,
+            key_pair=self.key_pair,
+            chain=self.chain_id
+        )
+        return self

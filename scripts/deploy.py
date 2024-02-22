@@ -3,11 +3,20 @@ import argparse
 from datetime import datetime
 
 from deploy_modules import (
+    DeclareContract,
     DeployContract, 
     DeployerConfig, 
     ContractDataWriter, 
-    Erc20Contract
+    InitializeContractData,
+    Erc20Contract,
 )
+
+CONTRACTS = [
+    {
+        "contract_name": "Counter",
+        "constructor_args": {}
+    }
+]
 
 async def main(deploy_env):
     """
@@ -15,23 +24,31 @@ async def main(deploy_env):
     """
     current_time = datetime.now()
     formatted_time = current_time.strftime("%Y-%m-%d:%H:%M:%S")
-    deployer_config = DeployerConfig.get_config(deploy_env)
-    contract_name = "ClaimToken"
-    deployer = DeployContract(
-        contract_name=contract_name, 
-        deployer_config=deployer_config,
-        constructor_args={
-            "initial_supply": 10000, 
-            "recipient": int(deployer_config.account_address, 16)       # must cast address string to int16
-        }
-    )
-    deployed_contract = await deployer.run()
-    ContractDataWriter.write_data(
-        deploy_env=args.deploy_env, 
-        contract=deployed_contract, 
-        contract_name=contract_name, 
-        formatted_time=formatted_time
-    )
+    deployer_config = DeployerConfig.get_config(deploy_env).init_account()
+    
+    for contract in CONTRACTS:
+        initialized_contract = InitializeContractData(contract_name=contract["contract_name"])
+        casm_class_hash, compiled_contract, sierra_class_hash = initialized_contract.read_contract_file_data()
+        declared_contract = DeclareContract(
+            deployer_config,
+            casm_class_hash,
+            compiled_contract,
+            sierra_class_hash
+        )
+        declared_contract = await declared_contract.get_contract()
+        deployer = DeployContract(
+            declared_contract,
+            deployer_config,
+            sierra_class_hash,
+            constructor_args=contract["constructor_args"]
+        )
+        deployed_contract = await deployer.deploy()
+        ContractDataWriter.write_data(
+            deploy_env=args.deploy_env, 
+            contract=deployed_contract, 
+            contract_name=contract["contract_name"], 
+            formatted_time=formatted_time
+        )
 
 
 async def fund_account(deploy_env):
