@@ -35,8 +35,13 @@ mod FractionVaultFactory {
 
     use super::{IFractionVaultFactory, FractionPeriod, ContractFunction};
     use starknet::{ClassHash, ContractAddress};
-    use starknet::{get_caller_address, get_contract_address, call_contract_syscall};
-
+    use starknet::{
+        get_caller_address, 
+        get_contract_address, 
+        call_contract_syscall, 
+        get_block_info, // get block timestamp
+    };
+    
 
     #[storage]
     struct Storage{
