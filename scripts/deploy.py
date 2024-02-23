@@ -1,37 +1,128 @@
 import asyncio
 import argparse
-from datetime import datetime
+import json
+
+from starknet_py.contract import DeclareResult
 
 from deploy_modules import (
+    DeclareContract,
     DeployContract, 
     DeployerConfig, 
     ContractDataWriter, 
-    Erc20Contract
+    InitializeContractData,
+    Erc20Contract,
 )
+
+
+get_abi = lambda contract: contract._get_abi() if isinstance(contract, DeclareResult) else json.loads(contract.abi)
+
 
 async def main(deploy_env):
     """
         main deployment script that will declare, deploy and write the contract data
     """
-    current_time = datetime.now()
-    formatted_time = current_time.strftime("%Y-%m-%d:%H:%M:%S")
-    deployer_config = DeployerConfig.get_config(deploy_env)
-    contract_name = "ClaimToken"
-    deployer = DeployContract(
-        contract_name=contract_name, 
-        deployer_config=deployer_config,
-        constructor_args={
-            "initial_supply": 10000, 
-            "recipient": int(deployer_config.account_address, 16)       # must cast address string to int16
-        }
+    deployer_config = DeployerConfig.get_config(deploy_env).init_account()
+    
+    ### Counter
+    print("Delcaring Counter")
+    initialized_counter_contract = InitializeContractData(contract_name="Counter")
+    casm_class_hash_counter, compiled_contract_counter, sierra_class_hash_counter = initialized_counter_contract.read_contract_file_data()
+    declared_counter_contract = DeclareContract(
+        deployer_config,
+        casm_class_hash_counter,
+        compiled_contract_counter,
+        sierra_class_hash_counter
     )
-    deployed_contract = await deployer.run()
+    declared_counter_contract = await declared_counter_contract.get_contract()
+    print("Declared Counter Contract")
     ContractDataWriter.write_data(
         deploy_env=args.deploy_env, 
-        contract=deployed_contract, 
-        contract_name=contract_name, 
-        formatted_time=formatted_time
+        abi=get_abi(declared_counter_contract),
+        chain_id=deployer_config.chain_id,
+        contract_name="Counter", 
     )
+    print("Wrote Counter Contract Data")
+    print()
+
+    ### Counter Factory
+    print("Declaring CounterFactory")
+    initialized_counter_factory_contract = InitializeContractData(contract_name="CounterFactory")
+    casm_class_hash_counter_factory, compiled_contract_counter_factory, sierra_class_hash_counter_factory = initialized_counter_factory_contract.read_contract_file_data()
+    declared_counter_factory_contract = DeclareContract(
+        deployer_config,
+        casm_class_hash_counter_factory,
+        compiled_contract_counter_factory,
+        sierra_class_hash_counter_factory
+    )
+    declared_counter_factory_contract = await declared_counter_factory_contract.get_contract()
+    print("Declared CounterFactory Contract")
+    deployer = DeployContract(
+        declared_counter_factory_contract,
+        deployer_config,
+        sierra_class_hash_counter_factory,
+        constructor_args={"class_hash": sierra_class_hash_counter}
+    )
+    deployed_counter_factory_contract = await deployer.deploy()
+    print(f"Deployed CounterFactory Contract to address {hex(deployed_counter_factory_contract.address)}")
+    ContractDataWriter.write_data(
+        deploy_env=args.deploy_env, 
+        abi=get_abi(declared_counter_factory_contract),
+        chain_id=deployer_config.chain_id,
+        contract_name="CounterFactory", 
+        address = deployed_counter_factory_contract.address
+    )
+    print("Wrote CounterFactory Contract Data")
+    print()
+
+    ### Claim Token
+    print("Declaring ClaimToken Contract")
+    initialized_claim_token_contract = InitializeContractData(contract_name="ClaimToken")
+    casm_class_hash_claim_token, compiled_contract_claim_token, sierra_class_hash_claim_token = initialized_claim_token_contract.read_contract_file_data()
+    declared_claim_token_contract = DeclareContract(
+        deployer_config,
+        casm_class_hash_claim_token,
+        compiled_contract_claim_token,
+        sierra_class_hash_claim_token
+    )
+    declared_claim_token_contract = await declared_claim_token_contract.get_contract()
+    print("Declared ClaimToken Contract")
+    ContractDataWriter.write_data(
+        deploy_env=args.deploy_env, 
+        abi=get_abi(declared_claim_token_contract),
+        chain_id=deployer_config.chain_id,
+        contract_name="ClaimToken",
+    )
+    print("Wrote ClaimToken Contract Data")
+    print()
+
+    ### FractionVaultFactory
+    print("Declaring FractionVaultFactory Contract")
+    initialized_faction_vault_factory_contract = InitializeContractData(contract_name="FractionVaultFactory")
+    casm_class_hash_faction_vault_factory, compiled_contract_faction_vault_factory, sierra_class_hash_faction_vault_factory = initialized_faction_vault_factory_contract.read_contract_file_data()
+    declared_vault_factory_contract = DeclareContract(
+        deployer_config,
+        casm_class_hash_faction_vault_factory,
+        compiled_contract_faction_vault_factory,
+        sierra_class_hash_faction_vault_factory
+    )
+    declared_vault_factory_contract = await declared_vault_factory_contract.get_contract()
+    print("Declared FractionVaultFactory Contract")
+    deployer = DeployContract(
+        declared_vault_factory_contract,
+        deployer_config,
+        sierra_class_hash_faction_vault_factory,
+        constructor_args={"erc20_class_hash": sierra_class_hash_claim_token}
+    )
+    deployed_vault_factory_contract = await deployer.deploy()
+    print(f"Deployed FractionVaultFactory Contract to address: {hex(deployed_vault_factory_contract.address)}")
+    ContractDataWriter.write_data(
+        deploy_env=args.deploy_env, 
+        abi=get_abi(declared_vault_factory_contract),
+        chain_id=deployer_config.chain_id,
+        contract_name="FractionVaultFactory", 
+        address = deployed_vault_factory_contract.address
+    )
+    print()
 
 
 async def fund_account(deploy_env):
@@ -44,7 +135,7 @@ async def fund_account(deploy_env):
     await contract_interaction.get_contract()
     current_account_balance = await contract_interaction.get_account_balance()
     if current_account_balance < int(1e18):
-        print(f"current balance funding account to {current_account_balance + int(1e18)}")
+        print(f"Current balance: {current_account_balance} funding account to {current_account_balance + int(1e18)}")
         contract_kwargs = {
             "recipient":int(deployer_config.developer_account, 16), 
             "amount": int(1e18)     # send 1 ether

@@ -10,15 +10,18 @@ trait ICounterFactory<TContractState>{
 
 #[starknet::contract]
 mod CounterFactory{
+
     use core::poseidon::poseidon_hash_span;
     use super::ICounterFactory;
-    use starknet::ClassHash;
-    use starknet::ContractAddress;
-    use starknet::SyscallResult;
-
     use starknet::syscalls::deploy_syscall;
-    use starknet::get_caller_address;
-    use starknet::info::get_contract_address;
+    use starknet::{
+        ClassHash,
+        ContractAddress,
+        SyscallResult,
+        get_caller_address,
+        get_contract_address,
+        get_tx_info
+    };
 
     #[storage]
     struct Storage{
@@ -29,8 +32,9 @@ mod CounterFactory{
     }
 
     #[constructor]
-    fn constructor(ref self: ContractState){
+    fn constructor(ref self: ContractState, class_hash: ClassHash){
         self.owner.write(get_caller_address());
+        self.counter_contract_class_hash.write(class_hash);
     }
 
     #[abi(embed_v0)]
@@ -39,9 +43,10 @@ mod CounterFactory{
         fn deploy_counter_contract(ref self: ContractState){
             let caller_address = get_caller_address();
             let call_data = array![''].span(); // empty call data
+            let transaction_nonce: felt252 = get_tx_info().unbox().nonce;
             let deploy_result: SyscallResult = deploy_syscall(
                 self.counter_contract_class_hash.read(),
-                generate_salt(caller_address, self.counter_id.read().into()), // important for preventing address collision
+                generate_salt(caller_address, transaction_nonce), // important for preventing address collision
                 call_data,
                 deploy_from_zero: false
             );
