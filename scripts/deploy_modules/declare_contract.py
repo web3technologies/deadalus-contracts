@@ -11,7 +11,6 @@ class DeclareContract:
         self.sierra_class_hash = sierra_class_hash
     
     async def __declare(self):
-        print("declaring") 
         declare_result = await Contract.declare_v3(
             account=self.deployer_config.account, 
             compiled_contract=self.compiled_contract,

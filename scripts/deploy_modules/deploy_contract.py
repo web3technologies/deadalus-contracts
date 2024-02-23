@@ -14,7 +14,6 @@ class DeployContract:
         self.constructor_args = constructor_args
         
     async def deploy(self):
-        print("deploying")
         deploy_result = await Contract.deploy_contract_v3(
             account=self.deployer_config.account,
             class_hash=self.sierra_class_hash,

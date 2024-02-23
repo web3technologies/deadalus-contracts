@@ -29,8 +29,9 @@ mod CounterFactory{
     }
 
     #[constructor]
-    fn constructor(ref self: ContractState){
+    fn constructor(ref self: ContractState, class_hash: ClassHash){
         self.owner.write(get_caller_address());
+        self.counter_contract_class_hash.write(class_hash);
     }
 
     #[abi(embed_v0)]
