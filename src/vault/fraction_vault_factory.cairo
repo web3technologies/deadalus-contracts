@@ -119,8 +119,6 @@ mod FractionVault {
         // add distribute function
     }
     
-
-
     fn process_fraction_period(fraction_period: FractionPeriod) -> u256{
         let value = match fraction_period{
             FractionPeriod::MINUTELY => {31536000_u256},
