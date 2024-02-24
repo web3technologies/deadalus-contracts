@@ -52,11 +52,11 @@ mod FractionVault {
     };
     
     use deadalus::oracle::time_oracle::{ITimeOracleDispatcher, ITimeOracleDispatcherTrait};
+    // use deadalus::fraction::fraction_nft::{IFractionNFTDispatcher, IFractionNFTDispatcherTrait};
 
     #[storage]
     struct Storage{
         owner: ContractAddress,
-        erc20_token_class_hash: ClassHash,
         counter_contracts_to_user: LegacyMap::<ContractAddress,ContractAddress>,
         functions: LegacyMap::<felt252, ContractFunction>, // map the function name to the function selector hash
         time_oracle_address: ContractAddress,
@@ -65,12 +65,10 @@ mod FractionVault {
 
     #[constructor]
     fn constructor(
-        ref self: ContractState, 
-        erc20_class_hash: ClassHash, 
+        ref self: ContractState,
         time_oracle_address: ContractAddress,
         ){
         self.owner.write(get_caller_address());
-        self.erc20_token_class_hash.write(erc20_class_hash);
         self.time_oracle_address.write(time_oracle_address);
     }
 

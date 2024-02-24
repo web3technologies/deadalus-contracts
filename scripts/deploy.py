@@ -74,28 +74,6 @@ async def main(deploy_env):
     print("Wrote CounterFactory Contract Data")
     print()
 
-    ### Claim Token
-    print("Declaring ClaimToken Contract")
-    initialized_claim_token_contract = InitializeContractData(contract_name="ClaimToken")
-    casm_class_hash_claim_token, compiled_contract_claim_token, sierra_class_hash_claim_token = initialized_claim_token_contract.read_contract_file_data()
-    declared_claim_token_contract = DeclareContract(
-        deployer_config,
-        casm_class_hash_claim_token,
-        compiled_contract_claim_token,
-        sierra_class_hash_claim_token
-    )
-    declared_claim_token_contract = await declared_claim_token_contract.get_contract()
-    print("Declared ClaimToken Contract")
-    ContractDataWriter.write_data(
-        deploy_env=args.deploy_env, 
-        abi=get_abi(declared_claim_token_contract),
-        chain_id=deployer_config.chain_id,
-        contract_name="ClaimToken",
-    )
-    print("Wrote ClaimToken Contract Data")
-    print()
-
-
     ### TimeOracle
     print("Declaring TimeOracle Contract")
     initialized_time_oracle_contract = InitializeContractData(contract_name="TimeOracle")
@@ -125,7 +103,7 @@ async def main(deploy_env):
     )
     print()
 
-    ### FractionVaultFactory
+    ### FractionVault
     print("Declaring FractionVaultFactory Contract")
     initialized_faction_vault_factory_contract = InitializeContractData(contract_name="FractionVault")
     casm_class_hash_faction_vault_factory, compiled_contract_faction_vault_factory, sierra_class_hash_faction_vault_factory = initialized_faction_vault_factory_contract.read_contract_file_data()
@@ -142,7 +120,6 @@ async def main(deploy_env):
         deployer_config,
         sierra_class_hash_faction_vault_factory,
         constructor_args={
-            "erc20_class_hash": sierra_class_hash_claim_token,
             "time_oracle_address": deployed_time_oracle_contract.address
         }
     )
