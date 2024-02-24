@@ -31,23 +31,26 @@ trait IFractionVault<TContractState>{
     fn call_function(ref self: TContractState, contract_address: ContractAddress, function_name: felt252, call_data: Array<felt252>);
     fn add_function(ref self: TContractState, function_name: felt252, function_selector: felt252, require_owner: bool);
     fn get_controller(ref self: TContractState) -> ContractAddress;
+    fn get_contract_owner(ref self: TContractState) -> ContractAddress;
 }
-
 
 
 #[starknet::contract]
 mod FractionVault {
 
+    use core::traits::TryInto;
     use core::array::SpanTrait;
     use super::{IFractionVault, FractionPeriod, ContractFunction};
-    use starknet::{ClassHash, ContractAddress};
+    use starknet::{ClassHash, ContractAddress, Felt252TryIntoContractAddress};
     use starknet::{
         get_caller_address, 
         get_contract_address, 
         call_contract_syscall, 
         get_block_info, // get block timestamp
+        contract_address_try_from_felt252
     };
     
+    use deadalus::oracle::time_oracle::{ITimeOracle};
 
     #[storage]
     struct Storage{
@@ -92,7 +95,6 @@ mod FractionVault {
                 let token_supply = process_fraction_period(fraction_period);
                 // deploy nft contract
                 // mint to all nfts to caller
-
         }
         
         fn call_function(
@@ -123,25 +125,14 @@ mod FractionVault {
             self.functions.write(function_name, function);
         }
 
+        // function to get the current controller of the contract
+        // using the unix time oracle, the callers nft and the period this can be calculated
         fn get_controller(ref self: ContractState) -> ContractAddress{
-            let result = call_contract_syscall(
-                self.time_oracle_address.read(),     
-                self.time_oracle_selector.read(), 
-                array![].span()
-            );
-            match result{
-                Result::Ok(result_value)=>{
-                    let curr_unix_time = result_value.get(0).into();
-                    
-                },
-                Result::Err(_) => {
-                    panic!("error in contract call");
-                }
-            }
-           get_caller_address() // this needs to be replaced with the function to get the current controller 
+            // let contract_address = self.time_oracle_address.read();
+            // let let_time_result_uinx = ITimeOracle{contract_address}.get_time();
+            get_caller_address() // this needs to be replaced with the function to get the current controller 
         }
 
-        // add distribute function
     }
     
     fn process_fraction_period(fraction_period: FractionPeriod) -> u256{
