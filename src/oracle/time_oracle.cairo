@@ -8,10 +8,12 @@ trait ITimeOracle<TContractState>{
 mod TimeOracle{
 
     use super::{ITimeOracle};
+    use starknet::ContractAddress;
 
     #[storage]
     struct Storage{
-        unix_time: u256
+        unix_time: u256,
+        owner: ContractAddress 
     }
 
     #[abi(embed_v0)]
@@ -26,3 +28,4 @@ mod TimeOracle{
         }
     }
 }
+

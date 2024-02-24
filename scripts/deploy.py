@@ -10,7 +10,7 @@ from deploy_modules import (
     DeployerConfig, 
     ContractDataWriter, 
     InitializeContractData,
-    Erc20Contract,
+    Erc20Contract
 )
 
 
@@ -143,8 +143,7 @@ async def main(deploy_env):
         sierra_class_hash_faction_vault_factory,
         constructor_args={
             "erc20_class_hash": sierra_class_hash_claim_token,
-            "time_oracle_address": deployed_time_oracle_contract.address,
-            "time_oracle_selector": '' ## need to get this value
+            "time_oracle_address": deployed_time_oracle_contract.address
         }
     )
     deployed_vault_factory_contract = await deployer.deploy()
@@ -157,6 +156,8 @@ async def main(deploy_env):
         address = deployed_vault_factory_contract.address
     )
     print()
+
+    return deployed_time_oracle_contract.address
 
 
 async def fund_account(deploy_env):
@@ -183,6 +184,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Script to deploy smart contracts.')
     parser.add_argument('--deploy-env', dest='deploy_env', type=str, help='Deployment environment (e.g., dev, int, prod)')
     args = parser.parse_args()
-    asyncio.run(main(args.deploy_env))
+    oracle_address = asyncio.run(main(args.deploy_env))
     if args.deploy_env == "dev":
         asyncio.run(fund_account(args.deploy_env))
+    print(f"Time oracle address: {oracle_address}")
+        

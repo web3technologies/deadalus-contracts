@@ -4,3 +4,6 @@ from deploy_modules.deployer_config import DeployerConfig
 from deploy_modules.contract_data_writer import ContractDataWriter
 from deploy_modules.contract_interaction import Erc20Contract
 from deploy_modules.initialize_contract import InitializeContractData
+from deploy_modules.update_oracle import update_oracle
+
+

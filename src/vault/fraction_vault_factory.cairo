@@ -67,13 +67,11 @@ mod FractionVault {
     fn constructor(
         ref self: ContractState, 
         erc20_class_hash: ClassHash, 
-        time_oracle_address: ContractAddress, 
-        time_oracle_selector: felt252
+        time_oracle_address: ContractAddress,
         ){
         self.owner.write(get_caller_address());
         self.erc20_token_class_hash.write(erc20_class_hash);
         self.time_oracle_address.write(time_oracle_address);
-        self.time_oracle_selector.write(time_oracle_selector);
     }
 
     #[abi(embed_v0)]
