@@ -95,9 +95,39 @@ async def main(deploy_env):
     print("Wrote ClaimToken Contract Data")
     print()
 
+
+    ### TimeOracle
+    print("Declaring TimeOracle Contract")
+    initialized_time_oracle_contract = InitializeContractData(contract_name="TimeOracle")
+    casm_class_hash_time_oracle, compiled_contract_time_oracle, sierra_class_hash_time_oracle = initialized_time_oracle_contract.read_contract_file_data()
+    declared_time_oracle_contract = DeclareContract(
+        deployer_config,
+        casm_class_hash_time_oracle,
+        compiled_contract_time_oracle,
+        sierra_class_hash_time_oracle
+    )
+    declared_time_oracle_contract = await declared_time_oracle_contract.get_contract()
+    print("Declared TimeOracle Contract")
+    deployer = DeployContract(
+        declared_time_oracle_contract,
+        deployer_config,
+        sierra_class_hash_time_oracle,
+        constructor_args={}
+    )
+    deployed_time_oracle_contract = await deployer.deploy()
+    print(f"Deployed TimeOracle Contract to address: {hex(deployed_time_oracle_contract.address)}")
+    ContractDataWriter.write_data(
+        deploy_env=args.deploy_env, 
+        abi=get_abi(declared_time_oracle_contract),
+        chain_id=deployer_config.chain_id,
+        contract_name="TimeOracle", 
+        address = deployed_time_oracle_contract.address
+    )
+    print()
+
     ### FractionVaultFactory
     print("Declaring FractionVaultFactory Contract")
-    initialized_faction_vault_factory_contract = InitializeContractData(contract_name="FractionVaultFactory")
+    initialized_faction_vault_factory_contract = InitializeContractData(contract_name="FractionVault")
     casm_class_hash_faction_vault_factory, compiled_contract_faction_vault_factory, sierra_class_hash_faction_vault_factory = initialized_faction_vault_factory_contract.read_contract_file_data()
     declared_vault_factory_contract = DeclareContract(
         deployer_config,
@@ -111,7 +141,11 @@ async def main(deploy_env):
         declared_vault_factory_contract,
         deployer_config,
         sierra_class_hash_faction_vault_factory,
-        constructor_args={"erc20_class_hash": sierra_class_hash_claim_token}
+        constructor_args={
+            "erc20_class_hash": sierra_class_hash_claim_token,
+            "time_oracle_address": deployed_time_oracle_contract.address,
+            "time_oracle_selector": '' ## need to get this value
+        }
     )
     deployed_vault_factory_contract = await deployer.deploy()
     print(f"Deployed FractionVaultFactory Contract to address: {hex(deployed_vault_factory_contract.address)}")

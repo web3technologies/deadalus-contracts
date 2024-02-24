@@ -19,6 +19,7 @@ enum FractionPeriod {
     YEARLY 
 }
 
+
 #[starknet::interface]
 trait IFractionVault<TContractState>{
     fn deposit_contract(
@@ -29,7 +30,7 @@ trait IFractionVault<TContractState>{
         );
     fn call_function(ref self: TContractState, contract_address: ContractAddress, function_name: felt252, call_data: Array<felt252>);
     fn add_function(ref self: TContractState, function_name: felt252, function_selector: felt252, require_owner: bool);
-    // fn get_controller(ref self: TContractState) -> ContractAddress;
+    fn get_controller(ref self: TContractState) -> ContractAddress;
 }
 
 
@@ -37,6 +38,7 @@ trait IFractionVault<TContractState>{
 #[starknet::contract]
 mod FractionVault {
 
+    use core::array::SpanTrait;
     use super::{IFractionVault, FractionPeriod, ContractFunction};
     use starknet::{ClassHash, ContractAddress};
     use starknet::{
@@ -52,13 +54,22 @@ mod FractionVault {
         owner: ContractAddress,
         erc20_token_class_hash: ClassHash,
         counter_contracts_to_user: LegacyMap::<ContractAddress,ContractAddress>,
-        functions: LegacyMap::<felt252, ContractFunction> // map the function name to the function selector hash
+        functions: LegacyMap::<felt252, ContractFunction>, // map the function name to the function selector hash
+        time_oracle_address: ContractAddress,
+        time_oracle_selector: felt252
     }
 
     #[constructor]
-    fn constructor(ref self: ContractState, erc20_class_hash: ClassHash){
+    fn constructor(
+        ref self: ContractState, 
+        erc20_class_hash: ClassHash, 
+        time_oracle_address: ContractAddress, 
+        time_oracle_selector: felt252
+        ){
         self.owner.write(get_caller_address());
         self.erc20_token_class_hash.write(erc20_class_hash);
+        self.time_oracle_address.write(time_oracle_address);
+        self.time_oracle_selector.write(time_oracle_selector);
     }
 
     #[abi(embed_v0)]
@@ -112,9 +123,23 @@ mod FractionVault {
             self.functions.write(function_name, function);
         }
 
-        // fn get_controller(ref self: ContractState) -> ContractAdress{
-        //    
-        // }
+        fn get_controller(ref self: ContractState) -> ContractAddress{
+            let result = call_contract_syscall(
+                self.time_oracle_address.read(),     
+                self.time_oracle_selector.read(), 
+                array![].span()
+            );
+            match result{
+                Result::Ok(result_value)=>{
+                    let curr_unix_time = result_value.get(0).into();
+                    
+                },
+                Result::Err(_) => {
+                    panic!("error in contract call");
+                }
+            }
+           get_caller_address() // this needs to be replaced with the function to get the current controller 
+        }
 
         // add distribute function
     }
