@@ -1,4 +1,3 @@
-
 #[starknet::interface]
 trait ITimeOracle<TContractState>{
     fn set_time(ref self: TContractState, unix_timestamp: u256);

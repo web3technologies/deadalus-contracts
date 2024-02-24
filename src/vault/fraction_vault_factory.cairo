@@ -29,9 +29,9 @@ trait IFractionVault<TContractState>{
             fraction_period: FractionPeriod
         );
     fn call_function(ref self: TContractState, contract_address: ContractAddress, function_name: felt252, call_data: Array<felt252>);
-    fn add_function(ref self: TContractState, function_name: felt252, function_selector: felt252, require_owner: bool);
+    fn add_function(ref self: TContractState, function_name: felt252, require_owner: bool);
     fn get_controller(ref self: TContractState) -> ContractAddress;
-    fn get_contract_owner(ref self: TContractState) -> ContractAddress;
+    // fn validate_caller(ref self: TrConractState, controller) -> Bool;
 }
 
 
@@ -40,6 +40,7 @@ mod FractionVault {
 
     use core::traits::TryInto;
     use core::array::SpanTrait;
+    use core::keccak::keccak_u256s_le_inputs;
     use super::{IFractionVault, FractionPeriod, ContractFunction};
     use starknet::{ClassHash, ContractAddress, Felt252TryIntoContractAddress};
     use starknet::{
@@ -50,7 +51,7 @@ mod FractionVault {
         contract_address_try_from_felt252
     };
     
-    use deadalus::oracle::time_oracle::{ITimeOracle};
+    use deadalus::oracle::time_oracle::{ITimeOracleDispatcher, ITimeOracleDispatcherTrait};
 
     #[storage]
     struct Storage{
@@ -115,11 +116,12 @@ mod FractionVault {
             );
         }
         // validate transfer_ownership and withdraw function and approve
-        fn add_function(ref self: ContractState, function_name: felt252, function_selector: felt252, require_owner: bool){
+        fn add_function(ref self: ContractState, function_name: felt252, require_owner: bool){
             assert(get_caller_address() == self.owner.read(), 'caller is not owner');
+            let function_selector_hash: felt252 = keccak_u256s_le_inputs(array![1].span()).try_into().unwrap();
             let function = ContractFunction{
-                name: function_name, 
-                selector: function_selector,
+                name: function_name,
+                selector: function_selector_hash, // can use keccak algo to calculate selector name instead of requiring input?
                 require_owner: require_owner
             };
             self.functions.write(function_name, function);
@@ -128,8 +130,9 @@ mod FractionVault {
         // function to get the current controller of the contract
         // using the unix time oracle, the callers nft and the period this can be calculated
         fn get_controller(ref self: ContractState) -> ContractAddress{
-            // let contract_address = self.time_oracle_address.read();
-            // let let_time_result_uinx = ITimeOracle{contract_address}.get_time();
+            let oracle_address = self.time_oracle_address.read();
+            let dispatcher = ITimeOracleDispatcher{contract_address: oracle_address};
+            let let_time_result_uinx = dispatcher.get_time();
             get_caller_address() // this needs to be replaced with the function to get the current controller 
         }
 
