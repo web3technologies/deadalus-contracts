@@ -12,13 +12,15 @@ struct ContractFunction{
 
 #[derive(Copy, Drop, Serde, starknet::Store)]
 enum FractionPeriod {
-   DAILY,
-   MONTHLY,
-   YEARLY 
+    MINUTELY,
+    HOURLY,
+    DAILY,
+    MONTHLY,
+    YEARLY 
 }
 
 #[starknet::interface]
-trait IFractionVaultFactory<TContractState>{
+trait IFractionVault<TContractState>{
     fn deposit_contract(
         ref self: TContractState, 
             name: felt252, 
@@ -27,13 +29,15 @@ trait IFractionVaultFactory<TContractState>{
         );
     fn call_function(ref self: TContractState, contract_address: ContractAddress, function_name: felt252, call_data: Array<felt252>);
     fn add_function(ref self: TContractState, function_name: felt252, function_selector: felt252, require_owner: bool);
+    // fn get_controller(ref self: TContractState) -> ContractAddress;
 }
 
 
-#[starknet::contract]
-mod FractionVaultFactory {
 
-    use super::{IFractionVaultFactory, FractionPeriod, ContractFunction};
+#[starknet::contract]
+mod FractionVault {
+
+    use super::{IFractionVault, FractionPeriod, ContractFunction};
     use starknet::{ClassHash, ContractAddress};
     use starknet::{
         get_caller_address, 
@@ -58,7 +62,7 @@ mod FractionVaultFactory {
     }
 
     #[abi(embed_v0)]
-    impl FracationVaultFactory of IFractionVaultFactory<ContractState>{
+    impl FracationVault of IFractionVault<ContractState>{
         fn deposit_contract(
             ref self: ContractState, 
                 name: felt252, 
@@ -74,8 +78,10 @@ mod FractionVaultFactory {
                     call_data
                 );
                 self.counter_contracts_to_user.write(contract_address, get_caller_address());
-                // should we create a liquidity pool automatically?
                 let token_supply = process_fraction_period(fraction_period);
+                // deploy nft contract
+                // mint to all nfts to caller
+
         }
         
         fn call_function(
@@ -95,7 +101,7 @@ mod FractionVaultFactory {
                 call_data.span()
             );
         }
-
+        // validate transfer_ownership and withdraw function and approve
         fn add_function(ref self: ContractState, function_name: felt252, function_selector: felt252, require_owner: bool){
             assert(get_caller_address() == self.owner.read(), 'caller is not owner');
             let function = ContractFunction{
@@ -105,11 +111,20 @@ mod FractionVaultFactory {
             };
             self.functions.write(function_name, function);
         }
+
+        // fn get_controller(ref self: ContractState) -> ContractAdress{
+        //    
+        // }
+
+        // add distribute function
     }
+    
 
 
     fn process_fraction_period(fraction_period: FractionPeriod) -> u256{
         let value = match fraction_period{
+            FractionPeriod::MINUTELY => {31536000_u256},
+            FractionPeriod::HOURLY => {8760_u256},
             FractionPeriod::DAILY => { 365_u256 },
             FractionPeriod::MONTHLY => {12_u256},
             FractionPeriod::YEARLY => {1_u256},
