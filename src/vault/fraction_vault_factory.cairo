@@ -4,7 +4,6 @@ use starknet::ClassHash;
 
 #[derive(Copy, Drop, starknet::Store)]
 struct ContractFunction{
-    name: felt252,
     selector: felt252,
     require_owner: bool
 }
@@ -28,7 +27,7 @@ trait IFractionVault<TContractState>{
             fraction_period: FractionPeriod
         );
     fn call_function(ref self: TContractState, contract_address: ContractAddress, function_name: felt252, call_data: Array<felt252>);
-    fn add_function(ref self: TContractState, function_name: felt252, require_owner: bool);
+    fn add_function(ref self: TContractState, function_selector: felt252, require_owner: bool);
     fn get_controller(ref self: TContractState, deposited_contract_address: ContractAddress) -> ContractAddress;
 }
 
@@ -134,15 +133,13 @@ mod FractionVault {
             );
         }
         // validate transfer_ownership and withdraw function and approve
-        fn add_function(ref self: ContractState, function_name: felt252, require_owner: bool){
+        fn add_function(ref self: ContractState, function_selector: felt252, require_owner: bool){
             assert(get_caller_address() == self.owner.read(), 'caller is not owner');
-            let function_selector_hash: felt252 = keccak_u256s_le_inputs(array![1].span()).try_into().unwrap();
             let function = ContractFunction{
-                name: function_name,
-                selector: function_selector_hash, // can use keccak algo to calculate selector name instead of requiring input?
+                selector: function_selector, // can use keccak algo to calculate selector name instead of requiring input?
                 require_owner: require_owner
             };
-            self.functions.write(function_name, function);
+            self.functions.write(function_selector, function);
         }
 
         fn get_controller(ref self: ContractState, deposited_contract_address: ContractAddress) -> ContractAddress{
@@ -157,7 +154,7 @@ mod FractionVault {
             };
             let result = call_contract_syscall(
                 nft_address,     
-                'ownerOf', // need to hash this
+                selector!("ownerOf"),
                 array![''].span()
             );
             let mut tmp_addr: ContractAddress = get_caller_address();
