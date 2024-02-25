@@ -27,24 +27,50 @@ class DeployerConfig:
         self.account = None
         
     @classmethod
-    def get_config(cls, deploy_env):
+    def get_config(cls, deploy_env, chain):
         if deploy_env == 'dev':
             dev_deployer_config = cls(
                 account_address=config("DEV_ACCOUNT_ADDRESS"),
                 private_key=config("DEV_PRIVATE_KEY"),
                 node_url=config("DEV_NODE_URL"),
-                developer_account=config("DEVELOPER_ACCOUNT")       ## account created in Argent, Braavos etc
+                developer_account=config("DEVELOPER_ACCOUNT"),       ## account created in Argent, Braavos etc
+                chain_id=cls.get_chain_id(chain)
             )
         elif deploy_env == 'int':
-            dev_deployer_config = cls(
-                account_address=config("INT_ACCOUNT_ADDRESS"),
-                private_key=config("INT_PRIVATE_KEY"),
-                node_url=config("INT_NODE_URL"),
-            )
+            if chain == "GOERLI":
+                dev_deployer_config = cls(
+                    account_address=config("INT_GOERLI_ACCOUNT_ADDRESS"),
+                    private_key=config("INT_GOERLI_PRIVATE_KEY"),
+                    node_url=config("INT_GOERLI_NODE_URL"),
+                    chain_id=cls.get_chain_id(chain)
+                )
+            elif chain == "SEPOLIA":
+                dev_deployer_config = cls(
+                    account_address=config("INT_SEPOLIA_ACCOUNT_ADDRESS"),
+                    private_key=config("INT_SEPOLIA_PRIVATE_KEY"),
+                    node_url=config("INT_SEPOLIA_NODE_URL"),
+                    chain_id=cls.get_chain_id(chain)
+                )
+            else:
+                raise ValueError(f"Chain: {chain} is not an available chain.")
+            
         else:
             raise ValueError(f"{deploy_env} is not available for deployment.")
         return dev_deployer_config
     
+    @classmethod
+    def get_chain_id(cls, chain):
+        if chain == "GOERLI":
+            chain_id = StarknetChainId.GOERLI
+        elif chain == "SEPOLIA-INTEGRATION":
+            chain_id = StarknetChainId.SEPOLIA_INTEGRATION
+        elif chain == "SEPOLIA-TEST":
+            chain_id = StarknetChainId.SEPOLIA_TESTNET
+        elif chain == "MAINNET":
+            chain_id = StarknetChainId.MAINNET
+        else:
+            raise ValueError(f"Chain: {chain} is not an available chain.")
+        return chain_id
     
     def init_account(self):
         self.key_pair = KeyPair.from_private_key(self.private_key)
