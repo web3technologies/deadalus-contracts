@@ -97,15 +97,11 @@ mod FractionVault {
             ){
                 let current_caller = get_caller_address();
                 let call_data = array![].span(); // need to access contract address to set as the owner
-                let result = call_contract_syscall(
+                call_contract_syscall(
                     deposit_contract_address,
                     self.functions.read('set_owner').selector, 
                     call_data
-                );
-                match result{
-                    Result::Ok(_) =>{},
-                    Result::Err(_) => {panic!("Error in set owner call");}
-                }
+                ).expect('Error in set owner call');
                 // deploy nft contract
                 let current_caller_felt: felt252 = current_caller.into();
                 let nft_call_data = array!['Fraction', 'FRT', current_caller_felt, '2'].span();
@@ -140,15 +136,11 @@ mod FractionVault {
                 let current_controller = self.get_controller(contract_address);
                 assert(current_controller == caller, 'Caller is not in control');
             }
-            let result = call_contract_syscall(
+            call_contract_syscall(
                 contract_address,     
                 function.selector, 
                 call_data.span()
-            );
-            match result{
-                Result::Ok(_) =>{},
-                Result::Err(_) => {panic!("Error in set contract syscall");}
-            }
+            ).expect('error in contract call');
         }
         // validate transfer_ownership and withdraw function and approve
         fn add_function(
@@ -188,7 +180,7 @@ mod FractionVault {
     }
     
     fn process_fraction_period(fraction_period: FractionPeriod) -> u256{
-        let value = match fraction_period{
+        let value = match fraction_period {
             FractionPeriod::MINUTELY => {31536000_u256},
             FractionPeriod::HOURLY => {8760_u256},
             FractionPeriod::DAILY => { 365_u256 },
