@@ -44,7 +44,7 @@ class DeployerConfig:
                     node_url=config("INT_GOERLI_NODE_URL"),
                     chain_id=cls.get_chain_id(chain)
                 )
-            elif chain == "SEPOLIA":
+            elif chain in ("SEPOLIA-TEST", "SEPOLIA-INTEGRATION"):
                 dev_deployer_config = cls(
                     account_address=config("INT_SEPOLIA_ACCOUNT_ADDRESS"),
                     private_key=config("INT_SEPOLIA_PRIVATE_KEY"),
