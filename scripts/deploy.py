@@ -163,7 +163,7 @@ async def fund_account(deploy_env, chain):
     """
         If using a dev network on local host we need to fund an argent or braavos account in order to interact with the smart contracts
     """
-    deployer_config = DeployerConfig.get_config(deploy_env, chain=chain)
+    deployer_config = DeployerConfig.get_config(deploy_env, chain=chain).init_account()
     eth_address = int("0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7", 16)
     contract_interaction = Erc20Contract(deployer_config, contract_address=eth_address)
     await contract_interaction.get_contract()
