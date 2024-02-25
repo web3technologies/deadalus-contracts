@@ -8,7 +8,14 @@ from starknet_py.net.signer.stark_curve_signer import KeyPair
 
 class DeployerConfig:
     
-    def __init__(self, account_address, private_key, node_url, udc_address=DEFAULT_DEPLOYER_ADDRESS, chain_id=StarknetChainId.GOERLI, developer_account=None) -> None:
+    def __init__(self, 
+                 account_address, 
+                 private_key, 
+                 node_url, 
+                 udc_address=DEFAULT_DEPLOYER_ADDRESS, 
+                 chain_id=StarknetChainId.GOERLI, 
+                 developer_account=None
+    ) -> None:
         self.account_address = account_address
         self.private_key = private_key
         self.node_url = node_url
