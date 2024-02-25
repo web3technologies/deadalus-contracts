@@ -142,7 +142,7 @@ async def main(deploy_env, chain, deploy_oracle=False):
         sierra_class_hash_faction_vault,
         constructor_args={
             "time_oracle_address": deployed_time_oracle_contract.address,
-            "nft_contract_class_hash": sierra_class_hash_faction_vault
+            "nft_contract_class_hash": sierra_class_hash_nft
         }
     )
     deployed_vault_contract = await deployer.deploy()

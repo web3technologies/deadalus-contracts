@@ -96,23 +96,18 @@ mod FractionVault {
                 deposit_contract_address: ContractAddress
             ){
                 let current_caller = get_caller_address();
-                let contract_address = get_contract_address();
-                let felt_contract_address: felt252 = contract_address.into(); 
-                let call_data = array![felt_contract_address].span(); // need to access contract address to set as the owner
-                call_contract_syscall(
-                    deposit_contract_address,
-                    selector!("transfer_ownership"), 
-                    call_data
-                ).expect('Error in ownership transfer');
                 // deploy nft contract
+                let num_nft: u256 = 2;
                 let current_caller_felt: felt252 = current_caller.into();
-                let nft_call_data = array!['Fraction', 'FRT', current_caller_felt, '2'].span();
+                let mut nft_call_data = array!['Fraction', 'FRT', current_caller_felt];
+                num_nft.serialize(ref nft_call_data);
+                // let nft_call_data = array![].span();
                 let transaction_nonce: felt252 = get_tx_info().unbox().nonce;
                 let deploy_result: SyscallResult = deploy_syscall(
                     self.nft_contract_class_hash.read(),
                     generate_salt(current_caller, transaction_nonce), // important for preventing address collision
-                    nft_call_data,
-                    deploy_from_zero: false
+                    nft_call_data.span(),
+                    true
                 );
                 match deploy_result {
                     Result::Ok((_nft_contract_address, _return_data)) =>{
