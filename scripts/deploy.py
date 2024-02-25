@@ -95,38 +95,34 @@ async def main(deploy_env, chain, deploy_oracle=False):
     print("Wrote CounterFactory Contract Data")
     print()
 
-    if deploy_oracle:
-        ### TimeOracle
-        print("Declaring TimeOracle Contract")
-        initialized_time_oracle_contract = InitializeContractData(contract_name="TimeOracle")
-        casm_class_hash_time_oracle, compiled_contract_time_oracle, sierra_class_hash_time_oracle = initialized_time_oracle_contract.read_contract_file_data()
-        declared_time_oracle_contract = DeclareContract(
-            deployer_config,
-            casm_class_hash_time_oracle,
-            compiled_contract_time_oracle,
-            sierra_class_hash_time_oracle
-        )
-        declared_time_oracle_contract = await declared_time_oracle_contract.get_contract()
-        print("Declared TimeOracle Contract")
-        deployer = DeployContract(
-            declared_time_oracle_contract,
-            deployer_config,
-            sierra_class_hash_time_oracle,
-            constructor_args={}
-        )
-        deployed_time_oracle_contract = await deployer.deploy()
-        print(f"Deployed TimeOracle Contract to address: {hex(deployed_time_oracle_contract.address)}")
-        ContractDataWriter.write_data(
-            deploy_env=args.deploy_env, 
-            abi=get_abi(declared_time_oracle_contract),
-            chain_id=deployer_config.chain_id,
-            contract_name="TimeOracle", 
-            address = deployed_time_oracle_contract.address
-        )
-        print()
-    else:
-        print("not deploying oracle")
-        print()
+    ### TimeOracle
+    print("Declaring TimeOracle Contract")
+    initialized_time_oracle_contract = InitializeContractData(contract_name="TimeOracle")
+    casm_class_hash_time_oracle, compiled_contract_time_oracle, sierra_class_hash_time_oracle = initialized_time_oracle_contract.read_contract_file_data()
+    declared_time_oracle_contract = DeclareContract(
+        deployer_config,
+        casm_class_hash_time_oracle,
+        compiled_contract_time_oracle,
+        sierra_class_hash_time_oracle
+    )
+    declared_time_oracle_contract = await declared_time_oracle_contract.get_contract()
+    print("Declared TimeOracle Contract")
+    deployer = DeployContract(
+        declared_time_oracle_contract,
+        deployer_config,
+        sierra_class_hash_time_oracle,
+        constructor_args={}
+    )
+    deployed_time_oracle_contract = await deployer.deploy()
+    print(f"Deployed TimeOracle Contract to address: {hex(deployed_time_oracle_contract.address)}")
+    ContractDataWriter.write_data(
+        deploy_env=args.deploy_env, 
+        abi=get_abi(declared_time_oracle_contract),
+        chain_id=deployer_config.chain_id,
+        contract_name="TimeOracle", 
+        address = deployed_time_oracle_contract.address
+    )
+    print()
 
     ### FractionVault
     print("Declaring FractionVaultFactory Contract")
@@ -163,11 +159,11 @@ async def main(deploy_env, chain, deploy_oracle=False):
     return deployed_time_oracle_contract.address
 
 
-async def fund_account(deploy_env):
+async def fund_account(deploy_env, chain):
     """
         If using a dev network on local host we need to fund an argent or braavos account in order to interact with the smart contracts
     """
-    deployer_config = DeployerConfig.get_config(deploy_env)
+    deployer_config = DeployerConfig.get_config(deploy_env, chain=chain)
     eth_address = int("0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7", 16)
     contract_interaction = Erc20Contract(deployer_config, contract_address=eth_address)
     await contract_interaction.get_contract()
@@ -193,6 +189,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     oracle_address = asyncio.run(main(args.deploy_env, args.chain, deploy_oracle=args.deploy_oracle))
     if args.deploy_env == "dev":
-        asyncio.run(fund_account(args.deploy_env))
+        asyncio.run(fund_account(args.deploy_env, args.chain))
     print(f"Time oracle address: {oracle_address}")
         

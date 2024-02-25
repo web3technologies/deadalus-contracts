@@ -27,7 +27,7 @@ class DeployerConfig:
         self.account = None
         
     @classmethod
-    def get_config(cls, deploy_env, chain):
+    def get_config(cls, deploy_env, chain=None):
         if deploy_env == 'dev':
             dev_deployer_config = cls(
                 account_address=config("DEV_ACCOUNT_ADDRESS"),
