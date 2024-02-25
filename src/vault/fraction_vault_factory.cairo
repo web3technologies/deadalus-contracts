@@ -145,8 +145,6 @@ mod FractionVault {
             self.functions.write(function_name, function);
         }
 
-        // function to get the current controller of the contract
-        // using the unix time oracle, the callers nft and the period this can be calculated
         fn get_controller(ref self: ContractState, deposited_contract_address: ContractAddress) -> ContractAddress{
             let oracle_address = self.time_oracle_address.read();
             let dispatcher = ITimeOracleDispatcher{contract_address: oracle_address};
