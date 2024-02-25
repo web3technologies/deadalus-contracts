@@ -55,17 +55,6 @@ async def main(deploy_env, chain, deploy_oracle=False):
     )
     declared_flat_contract = await declared_flat_contract.get_contract()
     print("Declared Flat Contract")
-    deployer = DeployContract(
-        declared_flat_contract,
-        deployer_config,
-        sierra_class_hash_flat,
-        constructor_args={
-            "image": "test",
-            "initial_owner":int(deployer_config.account_address, 16), 
-        }
-    )
-    deployed_flat_contract = await deployer.deploy()
-    print(f"Deployed TimeOracle Contract to address: {hex(deployed_flat_contract.address)}")
     ContractDataWriter.write_data(
         deploy_env=args.deploy_env, 
         abi=get_abi(declared_flat_contract),
@@ -75,35 +64,35 @@ async def main(deploy_env, chain, deploy_oracle=False):
     print("Wrote Flat Contract Data")
     print()
 
-    # ### Counter 
-    # print("Declaring Counter")
-    # initialized_counter_contract = InitializeContractData(contract_name="Counter")
-    # casm_class_hash_counter, compiled_contract_counter, sierra_class_hash_counter = initialized_counter_contract.read_contract_file_data()
-    # declared_counter_contract = DeclareContract(
-    #     deployer_config,
-    #     casm_class_hash_counter,
-    #     compiled_contract_counter,
-    #     sierra_class_hash_counter
-    # )
-    # declared_counter_contract = await declared_counter_contract.get_contract()
-    # print("Declared Counter Contract")
-    # deployer = DeployContract(
-    #     declared_counter_contract,
-    #     deployer_config,
-    #     sierra_class_hash_counter,
-    #     constructor_args={"class_hash": sierra_class_hash_counter}
-    # )
-    # deployed_counter_contract = await deployer.deploy()
-    # print(f"Deployed Counter Contract to address {hex(deployed_counter_contract.address)}")
-    # ContractDataWriter.write_data(
-    #     deploy_env=args.deploy_env, 
-    #     abi=get_abi(declared_counter_contract),
-    #     chain_id=deployer_config.chain_id,
-    #     contract_name="Counter", 
-    #     address = deployed_counter_contract.address
-    # )
-    # print("Wrote Counter Contract Data")
-    # print()
+    print("Delcaring ContractFactory Contract")
+    initialized_contract_factory_contract = InitializeContractData(contract_name="ContractFactory")
+    casm_class_hash_contract_factory, compiled_contract_contract_factory, sierra_class_hash_contract_factory = initialized_contract_factory_contract.read_contract_file_data()
+    declared_contract_factory_contract = DeclareContract(
+        deployer_config,
+        casm_class_hash_contract_factory,
+        compiled_contract_contract_factory,
+        sierra_class_hash_contract_factory
+    )
+    declared_contract_factory_contract = await declared_contract_factory_contract.get_contract()
+    print("Declared ContractFactory Contract")
+    deployer = DeployContract(
+        declared_contract_factory_contract,
+        deployer_config,
+        sierra_class_hash_contract_factory,
+        constructor_args={
+            "class_hash": casm_class_hash_flat
+        }
+    )
+    deployed_flat_contract = await deployer.deploy()
+    print(f"Deployed ContractFactory to address: {hex(deployed_flat_contract.address)}")
+    ContractDataWriter.write_data(
+        deploy_env=args.deploy_env, 
+        abi=get_abi(declared_flat_contract),
+        chain_id=deployer_config.chain_id,
+        contract_name="Flat", 
+    )
+    print("Wrote ContractFactory Data")
+    print()
 
     ### TimeOracle
     print("Declaring TimeOracle Contract")
