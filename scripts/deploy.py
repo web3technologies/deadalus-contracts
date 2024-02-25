@@ -44,6 +44,7 @@ async def main(deploy_env, chain, deploy_oracle=False):
     print("Wrote NFT Contract Data")
     print()
 
+    ## Flat Declare
     print("Delcaring Flat Contract")
     initialized_flat_contract = InitializeContractData(contract_name="Flat")
     casm_class_hash_flat, compiled_contract_flat, sierra_class_hash_flat = initialized_flat_contract.read_contract_file_data()
@@ -80,7 +81,7 @@ async def main(deploy_env, chain, deploy_oracle=False):
         deployer_config,
         sierra_class_hash_contract_factory,
         constructor_args={
-            "class_hash": casm_class_hash_flat
+            "class_hash": sierra_class_hash_flat
         }
     )
     deployed_flat_contract = await deployer.deploy()
