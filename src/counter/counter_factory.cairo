@@ -42,7 +42,7 @@ mod CounterFactory{
 
         fn deploy_counter_contract(ref self: ContractState){
             let caller_address = get_caller_address();
-            let call_data = array![''].span(); // empty call data
+            let call_data = array![].span(); // empty call data
             let transaction_nonce: felt252 = get_tx_info().unbox().nonce;
             let deploy_result: SyscallResult = deploy_syscall(
                 self.counter_contract_class_hash.read(),
