@@ -18,7 +18,6 @@ enum FractionPeriod {
     YEARLY 
 }
 
-
 #[starknet::interface]
 trait IFractionVault<TContractState>{
     fn deposit_contract(
@@ -55,6 +54,20 @@ mod FractionVault {
     
     use deadalus::oracle::time_oracle::{ITimeOracleDispatcher, ITimeOracleDispatcherTrait};
     // use deadalus::fraction::fraction_nft::{IFractionNFTDispatcher, IFractionNFTDispatcherTrait};
+
+
+    #[event]
+    #[derive(Drop, starknet::Event)]
+    enum Event {
+        ContractDeposit: ContractDeposit,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct ContractDeposit {
+        #[key]
+        contract: ContractAddress,
+        nft_contract: ContractAddress
+    }
 
     #[storage]
     struct Storage{
@@ -106,13 +119,15 @@ mod FractionVault {
                     deploy_from_zero: false
                 );
                 match deploy_result {
-                    Result::Ok((_contract_address, _return_data)) =>{
-                        self.deposited_contracts_to_nft_contract.write(deposit_contract_address, _contract_address);
+                    Result::Ok((_nft_contract_address, _return_data)) =>{
+                        self.deposited_contracts_to_nft_contract.write(deposit_contract_address, _nft_contract_address);
+                        self.emit(ContractDeposit{contract: deposit_contract_address, nft_contract:_nft_contract_address});
                     },
                     Result::Err(_) => {
                         panic!("error in deploy");
                     }
                 }
+                
         }
         
         fn call_function(
@@ -133,8 +148,8 @@ mod FractionVault {
                 call_data.span()
             );
             match result{
-                    Result::Ok(_) =>{},
-                    Result::Err(_) => {panic!("Error in set contract syscall");}
+                Result::Ok(_) =>{},
+                Result::Err(_) => {panic!("Error in set contract syscall");}
             }
         }
         // validate transfer_ownership and withdraw function and approve
@@ -144,7 +159,7 @@ mod FractionVault {
             require_owner: bool
         ){
             let function = ContractFunction{
-                selector: function_selector, // can use keccak algo to calculate selector name instead of requiring input?
+                selector: function_selector,
                 require_owner: require_owner
             };
             self.functions.write(function_selector, function);
@@ -167,17 +182,10 @@ mod FractionVault {
                 selector!("ownerOf"),
                 array![nft_id].span()
             );
-            match result {
-                Result::Ok(_address)=>{
-                    let tmp = *_address.at(0);
-                    let nft_owner_address: ContractAddress = tmp.try_into().unwrap();
-                    nft_owner_address
-                },
-                Result::Err(_) => {
-                    panic!("error in contract call");
-                    get_caller_address()
-                }
-            }
+            let address = result.expect('error in contract call');
+            let tmp = *address.at(0);
+            let nft_owner_address: ContractAddress = tmp.try_into().unwrap();
+            nft_owner_address
         }
     }
     
@@ -200,9 +208,3 @@ mod FractionVault {
     }
 
 }
-
-
-
-// how to serialize mapping data to FE
-// how to use ?
-// how to configure sntest

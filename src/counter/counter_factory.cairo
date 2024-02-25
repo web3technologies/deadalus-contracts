@@ -23,12 +23,26 @@ mod CounterFactory{
         get_tx_info
     };
 
+    #[event]
+    #[derive(Drop, starknet::Event)]
+    enum Event {
+        CounterDeploy: CounterDeploy,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct CounterDeploy {
+        #[key]
+        contract: ContractAddress,
+        counter_id: u256
+    }
+
+
     #[storage]
     struct Storage{
         owner: ContractAddress,
-        counter_contracts: LegacyMap::<ContractAddress, u128>,
+        counter_contracts: LegacyMap::<ContractAddress, u256>,
         counter_contract_class_hash: ClassHash, // need this in order to deploy,
-        counter_id: u128
+        counter_id: u256
     }
 
     #[constructor]
@@ -52,9 +66,10 @@ mod CounterFactory{
             );
             match deploy_result {
                 Result::Ok((_contract_address, _return_data)) =>{
-                    let mut counter_id = self.counter_id.read();
+                    let counter_id = self.counter_id.read();
                     self.counter_contracts.write(_contract_address, counter_id);
                     self.counter_id.write(counter_id + 1);
+                    self.emit(CounterDeploy{contract: _contract_address, counter_id: counter_id})
                 },
                 Result::Err(_) => {
                     panic!("error in contract call");
