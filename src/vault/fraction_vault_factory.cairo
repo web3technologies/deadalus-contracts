@@ -23,29 +23,32 @@ enum FractionPeriod {
 #[starknet::interface]
 trait IFractionVault<TContractState>{
     fn deposit_contract(
-        ref self: TContractState, 
-            name: felt252, 
-            contract_address: ContractAddress,
+        ref self: TContractState,
+            deposit_contract_address: ContractAddress,
             fraction_period: FractionPeriod
         );
     fn call_function(ref self: TContractState, contract_address: ContractAddress, function_name: felt252, call_data: Array<felt252>);
     fn add_function(ref self: TContractState, function_name: felt252, require_owner: bool);
-    fn get_controller(ref self: TContractState) -> ContractAddress;
-    // fn validate_caller(ref self: TrConractState, controller) -> Bool;
+    fn get_controller(ref self: TContractState, deposited_contract_address: ContractAddress) -> ContractAddress;
 }
 
 
 #[starknet::contract]
 mod FractionVault {
 
+    use core::poseidon::poseidon_hash_span;
     use core::traits::TryInto;
     use core::array::SpanTrait;
     use core::keccak::keccak_u256s_le_inputs;
     use super::{IFractionVault, FractionPeriod, ContractFunction};
-    use starknet::{ClassHash, ContractAddress, Felt252TryIntoContractAddress};
+    use starknet::{SyscallResult, ClassHash, ContractAddress, Felt252TryIntoContractAddress};
+    // use openzeppelin::tests::utils::constants::{CLASS_HASH_ZERO, ZERO};
+
     use starknet::{
+        deploy_syscall,
         get_caller_address, 
-        get_contract_address, 
+        get_contract_address,
+        get_tx_info, 
         call_contract_syscall, 
         get_block_info, // get block timestamp
         contract_address_try_from_felt252
@@ -57,41 +60,56 @@ mod FractionVault {
     #[storage]
     struct Storage{
         owner: ContractAddress,
-        counter_contracts_to_user: LegacyMap::<ContractAddress,ContractAddress>,
+        deposited_contracts_to_nft_contract: LegacyMap::<ContractAddress,ContractAddress>,
         functions: LegacyMap::<felt252, ContractFunction>, // map the function name to the function selector hash
         time_oracle_address: ContractAddress,
-        time_oracle_selector: felt252
+        time_oracle_selector: felt252,
+        nft_contract_class_hash: ClassHash
     }
 
     #[constructor]
     fn constructor(
         ref self: ContractState,
         time_oracle_address: ContractAddress,
+        nft_contract_class_hash: ClassHash
         ){
         self.owner.write(get_caller_address());
         self.time_oracle_address.write(time_oracle_address);
+        self.nft_contract_class_hash.write(nft_contract_class_hash);
     }
 
     #[abi(embed_v0)]
     impl FracationVault of IFractionVault<ContractState>{
         fn deposit_contract(
             ref self: ContractState, 
-                name: felt252, 
-                contract_address: ContractAddress,
+                deposit_contract_address: ContractAddress,
                 fraction_period: FractionPeriod
             ){
                 // need to check to make sure the contract has not already been deposited
-                // assert(self.counter_contracts.read(contract_address) == 0, "contract has already been deposited");
+                // assert(self.deposited_contracts_to_nft_contract.read(!deposit_contract_address).is_zero(), "contract has already been deposited");
+                let current_caller = get_caller_address();
                 let call_data = array![].span(); // need to access contract address to set as the owner
                 let result = call_contract_syscall(
-                    contract_address, 
+                    deposit_contract_address,
                     self.functions.read('set_owner').selector, 
                     call_data
                 );
-                self.counter_contracts_to_user.write(contract_address, get_caller_address());
-                let token_supply = process_fraction_period(fraction_period);
                 // deploy nft contract
-                // mint to all nfts to caller
+                let transaction_nonce: felt252 = get_tx_info().unbox().nonce;
+                let deploy_result: SyscallResult = deploy_syscall(
+                    self.nft_contract_class_hash.read(),
+                    generate_salt(current_caller, transaction_nonce), // important for preventing address collision
+                    call_data,
+                    deploy_from_zero: false
+                );
+                match deploy_result {
+                    Result::Ok((_contract_address, _return_data)) =>{
+                        self.deposited_contracts_to_nft_contract.write(deposit_contract_address, _contract_address);
+                    },
+                    Result::Err(_) => {
+                        panic!("error in deploy");
+                    }
+                }
         }
         
         fn call_function(
@@ -100,6 +118,10 @@ mod FractionVault {
             function_name: felt252, 
             call_data: Array<felt252>
         ){
+            let caller = get_caller_address();
+            let current_controller = self.get_controller(contract_address);
+            assert(current_controller == caller, 'Caller is not in control');
+
             let function = self.functions.read(function_name);
             if function.require_owner{
                 let caller = get_caller_address();
@@ -125,10 +147,17 @@ mod FractionVault {
 
         // function to get the current controller of the contract
         // using the unix time oracle, the callers nft and the period this can be calculated
-        fn get_controller(ref self: ContractState) -> ContractAddress{
+        fn get_controller(ref self: ContractState, deposited_contract_address: ContractAddress) -> ContractAddress{
             let oracle_address = self.time_oracle_address.read();
             let dispatcher = ITimeOracleDispatcher{contract_address: oracle_address};
             let let_time_result_uinx = dispatcher.get_time();
+            let nft_address = self.deposited_contracts_to_nft_contract.read(deposited_contract_address);
+            let INTERVAL = let_time_result_uinx % 60;
+            if INTERVAL < 30 {
+                // nft contract .get by id 1
+            } else{
+                // nft contract .get by id 2
+            };
             get_caller_address() // this needs to be replaced with the function to get the current controller 
         }
 
@@ -143,6 +172,13 @@ mod FractionVault {
             FractionPeriod::YEARLY => {1_u256},
         };
         value
+    }
+
+    // needed to provide randomness to the contract address
+    fn generate_salt(address: ContractAddress, nonce: felt252) -> felt252{
+        let values = array![address.into(), nonce];
+        let salt = poseidon_hash_span(values.span());
+        salt
     }
 
 }
