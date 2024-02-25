@@ -96,12 +96,14 @@ mod FractionVault {
                 deposit_contract_address: ContractAddress
             ){
                 let current_caller = get_caller_address();
-                let call_data = array![].span(); // need to access contract address to set as the owner
+                let contract_address = get_contract_address();
+                let felt_contract_address: felt252 = contract_address.into(); 
+                let call_data = array![felt_contract_address].span(); // need to access contract address to set as the owner
                 call_contract_syscall(
                     deposit_contract_address,
-                    self.functions.read('set_owner').selector, 
+                    selector!("transfer_ownership"), 
                     call_data
-                ).expect('Error in set owner call');
+                ).expect('Error in ownership transfer');
                 // deploy nft contract
                 let current_caller_felt: felt252 = current_caller.into();
                 let nft_call_data = array!['Fraction', 'FRT', current_caller_felt, '2'].span();
