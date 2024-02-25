@@ -16,5 +16,8 @@ casm = true
 sierra-text = true 
 casm-add-pythonic-hints = true
 
+[tool.snforge]
+exit_first = true
+
 
 
