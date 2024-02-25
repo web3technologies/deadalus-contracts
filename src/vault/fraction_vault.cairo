@@ -101,7 +101,6 @@ mod FractionVault {
                 let current_caller_felt: felt252 = current_caller.into();
                 let mut nft_call_data = array!['Fraction', 'FRT', current_caller_felt];
                 num_nft.serialize(ref nft_call_data);
-                // let nft_call_data = array![].span();
                 let transaction_nonce: felt252 = get_tx_info().unbox().nonce;
                 let deploy_result: SyscallResult = deploy_syscall(
                     self.nft_contract_class_hash.read(),
