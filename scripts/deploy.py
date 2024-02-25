@@ -44,6 +44,27 @@ async def main(deploy_env):
     print("Wrote Counter Contract Data")
     print()
 
+    ### NFT Declare
+    print("Delcaring NFT")
+    initialized_nft_contract = InitializeContractData(contract_name="FractionNFT")
+    casm_class_hash_nft, compiled_contract_nft, sierra_class_hash_nft = initialized_nft_contract.read_contract_file_data()
+    declared_nft_contract = DeclareContract(
+        deployer_config,
+        casm_class_hash_nft,
+        compiled_contract_nft,
+        sierra_class_hash_nft
+    )
+    declared_nft_contract = await declared_nft_contract.get_contract()
+    print("Declared NFT Contract")
+    ContractDataWriter.write_data(
+        deploy_env=args.deploy_env, 
+        abi=get_abi(declared_nft_contract),
+        chain_id=deployer_config.chain_id,
+        contract_name="NFT", 
+    )
+    print("Wrote NFT Contract Data")
+    print()
+
     ### Counter Factory
     print("Declaring CounterFactory")
     initialized_counter_factory_contract = InitializeContractData(contract_name="CounterFactory")
@@ -120,7 +141,8 @@ async def main(deploy_env):
         deployer_config,
         sierra_class_hash_faction_vault_factory,
         constructor_args={
-            "time_oracle_address": deployed_time_oracle_contract.address
+            "time_oracle_address": deployed_time_oracle_contract.address,
+            "nft_contract_class_hash": sierra_class_hash_faction_vault_factory
         }
     )
     deployed_vault_factory_contract = await deployer.deploy()
