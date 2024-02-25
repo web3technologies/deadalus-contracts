@@ -22,8 +22,7 @@ enum FractionPeriod {
 trait IFractionVault<TContractState>{
     fn deposit_contract(
         ref self: TContractState,
-            deposit_contract_address: ContractAddress,
-            fraction_period: FractionPeriod
+            deposit_contract_address: ContractAddress
         );
     fn call_function(ref self: TContractState, contract_address: ContractAddress, function_selector: felt252, call_data: Array<felt252>);
     fn add_function(ref self: TContractState, function_selector: felt252, require_owner: bool);
@@ -94,8 +93,7 @@ mod FractionVault {
     impl FracationVault of IFractionVault<ContractState>{
         fn deposit_contract(
             ref self: ContractState, 
-                deposit_contract_address: ContractAddress,
-                fraction_period: FractionPeriod
+                deposit_contract_address: ContractAddress
             ){
                 let current_caller = get_caller_address();
                 let call_data = array![].span(); // need to access contract address to set as the owner
