@@ -156,11 +156,10 @@ mod FractionVault {
         ) -> ContractAddress{
             let oracle_address = self.time_oracle_address.read();
             let dispatcher = ITimeOracleDispatcher{contract_address: oracle_address};
-            let let_time_result_uinx = dispatcher.get_time();
+            let let_time_result_uinx_interval = dispatcher.get_time()  % 60;
             let nft_address = self.deposited_contracts_to_nft_contract.read(deposited_contract_address);
-            let interval = let_time_result_uinx % 60;
             let mut nft_id = '1';
-            if interval > 30 {
+            if let_time_result_uinx_interval > 30 {
                 nft_id = '2';
             };
             let result = call_contract_syscall(
@@ -171,8 +170,8 @@ mod FractionVault {
             match result {
                 Result::Ok(_address)=>{
                     let tmp = *_address.at(0);
-                    let tmp_addr: ContractAddress = tmp.try_into().unwrap();
-                    tmp_addr
+                    let nft_owner_address: ContractAddress = tmp.try_into().unwrap();
+                    nft_owner_address
                 },
                 Result::Err(_) => {
                     panic!("error in contract call");
