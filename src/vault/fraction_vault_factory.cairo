@@ -152,15 +152,28 @@ mod FractionVault {
             let dispatcher = ITimeOracleDispatcher{contract_address: oracle_address};
             let let_time_result_uinx = dispatcher.get_time();
             let nft_address = self.deposited_contracts_to_nft_contract.read(deposited_contract_address);
-            let INTERVAL = let_time_result_uinx % 60;
-            if INTERVAL < 30 {
-                // nft contract .get by id 1
-            } else{
-                // nft contract .get by id 2
+            let interval = let_time_result_uinx % 60;
+            let mut nft_id = 1;
+            if interval > 30 {
+                nft_id = 2;
             };
-            get_caller_address() // this needs to be replaced with the function to get the current controller 
+            let result = call_contract_syscall(
+                nft_address,     
+                'ownerOf', // need to hash this
+                array![''].span()
+            );
+            let mut tmp_addr: ContractAddress = get_caller_address();
+            match result {
+                Result::Ok(_address)=>{
+                    let tmp = *_address.at(0);
+                    let tmp_addr: ContractAddress = tmp.try_into().unwrap();
+                },
+                Result::Err(_) => {
+                    panic!("error in contract call");
+                }
+            }
+            tmp_addr
         }
-
     }
     
     fn process_fraction_period(fraction_period: FractionPeriod) -> u256{
@@ -180,5 +193,6 @@ mod FractionVault {
         let salt = poseidon_hash_span(values.span());
         salt
     }
+
 
 }
