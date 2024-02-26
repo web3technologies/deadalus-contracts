@@ -5,6 +5,7 @@ from starknet_py.contract import Contract
 
 ## address to send second nft and ensure caller works properly
 ACCOUNT_ADDRESS_2 = "0x3805b27d17d628cc06463b7feb71a9373524d15b44117ce9e68208783bce30c"
+FUNCTION_SELECTOR = "0x003ed4ef5a86416c4497bd25609bebf337f226baca0782fe076b9594a2ee7335"
 
 async def test():
 
@@ -101,16 +102,35 @@ async def test():
     )
     deployed_vault_contract = await deployer.deploy()
     for flat_contract_address in flats:
+        transfer_flat = await deployed_flat_contract.functions["transfer_ownership"].invoke_v3(
+            new_owner=deployed_vault_contract.address,
+            auto_estimate=True
+        )
         invocation = await deployed_vault_contract.functions["deposit_contract"].invoke_v3(
             **{"deposit_contract_address": flat_contract_address},
             auto_estimate=True
         )
+        add_function_invocation = await deployed_vault_contract.functions["add_function"].invoke_v3(
+            function_selector=int(FUNCTION_SELECTOR, 16),
+            require_owner=True,
+            auto_estimate=True
+        )
+        get_flat_door_state = await deployed_flat_contract.functions["get_door_state"].call()
+        assert get_flat_door_state[0] == False
         ## then need to transfer nft to address 2
         ## then check caller is id 1
         ## then update time > 30 and assert controller is address 2
         controller_call = await deployed_vault_contract.functions["get_controller"].call(deposited_contract_address=flat_contract_address)
         current_controller = hex(controller_call[0])
         assert current_controller == deployer_config.account_address
+        call_function_invocation = await deployed_vault_contract.functions["call_function"].invoke_v3(
+            contract_address=flat_contract_address,
+            function_selector=int(FUNCTION_SELECTOR, 16),
+            call_data=[],
+            auto_estimate=True
+        )
+        get_flat_door_state = await deployed_flat_contract.functions["get_door_state"].call()
+        assert get_flat_door_state[0] == True
         
         # transfer nft 2 to a new user
         # then call the oracle to update time
@@ -136,6 +156,14 @@ async def test():
         controller_call = await deployed_vault_contract.functions["get_controller"].call(deposited_contract_address=flat_contract_address)
         current_controller = hex(controller_call[0])
         assert current_controller == ACCOUNT_ADDRESS_2
+
+        # this should fail because no longer the owner
+        # call_function_invocation = await deployed_vault_contract.functions["call_function"].invoke_v3(
+        #     contract_address=flat_contract_address,
+        #     function_selector=int(FUNCTION_SELECTOR, 16),
+        #     call_data=[],
+        #     auto_estimate=True
+        # )
         
         
     print()
