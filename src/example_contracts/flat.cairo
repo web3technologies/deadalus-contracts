@@ -6,7 +6,7 @@ trait IFlat<TContractState> {
     fn toogle_door(ref self: TContractState);
     fn get_door_state(self: @TContractState) -> bool;
     fn withdraw(ref self: TContractState, amount: u256, contract_address: ContractAddress);
-    fn get_address(self: @TContractState) -> felt252;
+    fn get_property_address(self: @TContractState) -> felt252;
 }
 
 #[starknet::contract]
@@ -26,7 +26,7 @@ mod Flat {
     struct Storage {
         image: Span<felt252>,
         door_open: bool,
-        address: felt252,
+        property_address: felt252,
         #[substorage(v0)]
         ownable: OwnableComponent::Storage,
     }
@@ -36,7 +36,7 @@ mod Flat {
         self.image.write(image);
         self.ownable.initializer(initial_owner);
         self.door_open.write(false);
-        self.address.write('12345 Starknet Lane');
+        self.property_address.write('12345 Starknet Lane');
     }
 
     #[abi(embed_v0)]
@@ -74,8 +74,8 @@ mod Flat {
             dispatcher.transfer(owner, amount);
         }
 
-        fn get_address(self: @ContractState) -> felt252{
-            self.address.read()
+        fn get_property_address(self: @ContractState) -> felt252{
+            self.property_address.read()
         }
 
     }
