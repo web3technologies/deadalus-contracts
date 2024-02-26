@@ -171,15 +171,20 @@ mod FractionVault {
                     panic!("failure in call")
                 }
             };
-            let let_time_result_unix_interval = current_unix_time % 60;
-            let mut nft_id = 1;
-            if let_time_result_unix_interval > 30 {
-                nft_id = 2;
+            let time_result_unix_interval = current_unix_time % 60;
+            let nft_id: u256 = if time_result_unix_interval > 30 {
+                let nft_id: u256 = 2;
+                nft_id
+            } else{
+                let nft_id: u256 = 1;
+                nft_id
             };
+            let mut arr = array![];
+            nft_id.serialize(ref arr);
             let result = call_contract_syscall(
                 self.deposited_contracts_to_nft_contract.read(deposited_contract_address),     
-                selector!("ownerOf"),
-                array![nft_id].span()
+                selector!("owner_of"),
+                arr.span()
             );
             let address = result.expect('error in contract call');
             let tmp = *address.at(0);

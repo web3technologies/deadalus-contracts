@@ -7,7 +7,6 @@ async def test():
 
     deployer_config = DeployerConfig.get_config('dev', "GOERLI").init_account()
 
-
     ### NFT Declare
     print("Delcaring NFT Contract")
     initialized_nft_contract = InitializeContractData(contract_name="FractionNFT")
