@@ -65,8 +65,8 @@ async def main(deploy_env, chain, deploy_oracle=False):
     print("Wrote Flat Contract Data")
     print()
 
-    print("Delcaring ContractFactory Contract")
-    initialized_contract_factory_contract = InitializeContractData(contract_name="ContractFactory")
+    print("Delcaring FlatFactory Contract")
+    initialized_contract_factory_contract = InitializeContractData(contract_name="FlatFactory")
     casm_class_hash_contract_factory, compiled_contract_contract_factory, sierra_class_hash_contract_factory = initialized_contract_factory_contract.read_contract_file_data()
     declared_contract_factory_contract = DeclareContract(
         deployer_config,
@@ -75,7 +75,7 @@ async def main(deploy_env, chain, deploy_oracle=False):
         sierra_class_hash_contract_factory
     )
     declared_contract_factory_contract = await declared_contract_factory_contract.get_contract()
-    print("Declared ContractFactory Contract")
+    print("Declared FlatFactory Contract")
     deployer = DeployContract(
         declared_contract_factory_contract,
         deployer_config,
@@ -84,16 +84,21 @@ async def main(deploy_env, chain, deploy_oracle=False):
             "class_hash": sierra_class_hash_flat
         }
     )
-    deployed_flat_contract = await deployer.deploy()
-    print(f"Deployed ContractFactory to address: {hex(deployed_flat_contract.address)}")
+    deployed_flat_factory_contract = await deployer.deploy()
+    print(f"Deployed FlatFactory to address: {hex(deployed_flat_factory_contract.address)}")
     ContractDataWriter.write_data(
-        deploy_env=args.deploy_env, 
+        deploy_env=args.deploy_env,
         abi=get_abi(declared_flat_contract),
         chain_id=deployer_config.chain_id,
-        contract_name="Flat", 
+        contract_name="FlatFactory", 
     )
     print("Wrote ContractFactory Data")
     print()
+
+    # ### CREATING 3 flats
+    # print("CREATING 3 flats")
+    # for _ in range(0,4):
+    #     trans = await deployed_flat_factory_contract.functions["create_flat"].invoke_v3(auto_estimate=True)
 
     ### TimeOracle
     print("Declaring TimeOracle Contract")

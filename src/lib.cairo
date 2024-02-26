@@ -1,6 +1,6 @@
 mod example_contracts {
     mod counter;
-    mod contract_factory;
+    mod flat_factory;
     mod flat;
 }
 mod vault {

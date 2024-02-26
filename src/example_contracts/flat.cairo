@@ -24,7 +24,7 @@ mod Flat {
 
     #[storage]
     struct Storage {
-        image: Span<felt252>,
+        image: felt252,
         door_open: bool,
         property_address: felt252,
         #[substorage(v0)]
@@ -32,7 +32,7 @@ mod Flat {
     }
 
     #[constructor]
-    fn constructor(ref self: ContractState, image: Span<felt252>, initial_owner: ContractAddress) {
+    fn constructor(ref self: ContractState, image:felt252, initial_owner: ContractAddress) {
         self.image.write(image);
         self.ownable.initializer(initial_owner);
         self.door_open.write(false);
