@@ -29,6 +29,8 @@ trait IFractionVault<TContractState>{
     fn get_controller(self: @TContractState, deposited_contract_address: ContractAddress) -> ContractAddress;
     fn get_nft_address(self: @TContractState, deposited_contract_address: ContractAddress) -> ContractAddress;
     fn get_function(self: @TContractState, selector: felt252) -> ContractFunction;
+    fn get_deposited_contracts(self: @TContractState) -> Array<ContractAddress>;
+    fn get_contract_id(self: @TContractState) -> u256;
 }
 
 
@@ -37,7 +39,7 @@ mod FractionVault {
 
     use core::poseidon::poseidon_hash_span;
     use core::traits::TryInto;
-    use core::array::SpanTrait;
+    use core::array::{SpanTrait, ArrayTrait};
     use core::keccak::keccak_u256s_le_inputs;
     use core::result::Result;
     use super::{IFractionVault, FractionPeriod, ContractFunction};
@@ -76,7 +78,9 @@ mod FractionVault {
         deposited_contracts_to_nft_contract: LegacyMap::<ContractAddress, ContractAddress>,
         functions: LegacyMap::<felt252, ContractFunction>, // map the function name to the function selector hash
         time_oracle_address: ContractAddress,
-        nft_contract_class_hash: ClassHash
+        nft_contract_class_hash: ClassHash,
+        contract_id: u256,
+        contract_id_to_contract: LegacyMap::<u256, ContractAddress> 
     }
 
     #[constructor]
@@ -111,6 +115,9 @@ mod FractionVault {
                 );
                 let nft_address: ContractAddress = match deploy_result {
                     Result::Ok((_nft_contract_address, _return_data)) =>{
+                        let current_contract_id = self.contract_id.read();
+                        self.contract_id_to_contract.write(current_contract_id, deposit_contract_address);
+                        self.contract_id.write(current_contract_id + 1);
                         self.deposited_contracts_to_nft_contract.write(deposit_contract_address, _nft_contract_address);
                         self.emit(ContractDeposit{contract: deposit_contract_address, nft_contract:_nft_contract_address});
                         _nft_contract_address
@@ -202,6 +209,26 @@ mod FractionVault {
         fn get_function(self: @ContractState, selector: felt252) -> ContractFunction{
             self.functions.read(selector)
         }
+        
+        fn get_contract_id(self: @ContractState) -> u256{
+            self.contract_id.read()
+        }
+
+        fn get_deposited_contracts(self: @ContractState) -> Array<ContractAddress>{
+            let mut arr1 = ArrayTrait::<ContractAddress>::new();
+            let mut idx = 0;
+            let contract_id = self.contract_id.read();
+            loop {
+                if idx < contract_id{
+                    arr1.append(self.contract_id_to_contract.read(idx));
+                    idx += 1;
+                } else {
+                    break;
+                }
+            };
+            arr1
+        }
+
     }
     
     fn process_fraction_period(fraction_period: FractionPeriod) -> u256{

@@ -44,7 +44,7 @@ async def test():
     )
     declared_flat_contract = await declared_flat_contract.get_contract()
     print("Declared Flat Contract")
-    for _ in range(1):
+    for _ in range(2):
         deployer = DeployContract(
             declared_flat_contract,
             deployer_config,
@@ -78,12 +78,6 @@ async def test():
     )
     deployed_time_oracle_contract = await deployer.deploy()
     print(f"Deployed TimeOracle Contract to address: {hex(deployed_time_oracle_contract.address)}")
-    tx = await deployed_time_oracle_contract.functions["set_time"].invoke_v3(
-        unix_timestamp=1708907167,
-        auto_estimate=True
-    )
-    await deployer_config.account.client.wait_for_tx(tx.hash)
-    print("oracle updated")
 
     ### vault 
     print("Declaring FractionVault Contract")
@@ -107,8 +101,25 @@ async def test():
         }
     )
     deployed_vault_contract = await deployer.deploy()
-    for flat_contract_address in flats:
-        transfer_flat = await deployed_flat_contract.functions["transfer_ownership"].invoke_v3(
+    for idx, flat_contract_address in enumerate(flats):
+
+        # set oracle time
+        tx = await deployed_time_oracle_contract.functions["set_time"].invoke_v3(
+            unix_timestamp=1708907167,
+            auto_estimate=True
+        )
+        await deployer_config.account.client.wait_for_tx(tx.hash)
+        print("oracle updated")
+        
+        curr_time = await deployed_time_oracle_contract.functions["get_time"].call()
+        assert curr_time[0] == 1708907167
+
+        flat_contract = await Contract.from_address(address=flat_contract_address, provider=deployer_config.account)
+
+        get_contract_id = await deployed_vault_contract.functions["get_contract_id"].call()
+        assert get_contract_id[0] == idx 
+        
+        transfer_flat = await flat_contract.functions["transfer_ownership"].invoke_v3(
             new_owner=deployed_vault_contract.address,
             auto_estimate=True
         )
@@ -121,21 +132,29 @@ async def test():
             require_owner=True,
             auto_estimate=True
         )
-        get_flat_door_state = await deployed_flat_contract.functions["get_door_state"].call()
+
+        get_contract_id = await deployed_vault_contract.functions["get_contract_id"].call()
+        assert get_contract_id[0] == idx + 1
+
+        get_flat_door_state = await flat_contract.functions["get_door_state"].call()
         assert get_flat_door_state[0] == False
         ## then need to transfer nft to address 2
         ## then check caller is id 1
-        ## then update time > 30 and assert controller is address 2
-        controller_call = await deployed_vault_contract.functions["get_controller"].call(deposited_contract_address=flat_contract_address)
+        ## then update time > 45 and assert controller is address 2
+        controller_call = await deployed_vault_contract.functions["get_controller"].call(
+            deposited_contract_address=flat_contract_address
+        )
         current_controller = hex(controller_call[0])
         assert current_controller == deployer_config.account_address
-        call_function_invocation = await deployed_vault_contract.functions["call_function"].invoke_v3(
+
+        # call the toogle door
+        call_toogle_door = await deployed_vault_contract.functions["call_function"].invoke_v3(
             contract_address=flat_contract_address,
             function_selector=int(FUNCTION_SELECTOR, 16),
             call_data=[],
             auto_estimate=True
         )
-        get_flat_door_state = await deployed_flat_contract.functions["get_door_state"].call()
+        get_flat_door_state = await flat_contract.functions["get_door_state"].call()
         assert get_flat_door_state[0] == True
         
         # transfer nft 2 to a new user
@@ -153,15 +172,20 @@ async def test():
         )
         nft_id_2_owner = await nft_contract.functions["owner_of"].call(2)
         nft_id_2_owner = nft_id_2_owner[0]
+        assert hex(nft_id_2_owner) == ACCOUNT_ADDRESS_2
+
         tx = await deployed_time_oracle_contract.functions["set_time"].invoke_v3(
             unix_timestamp=1708907270,
             auto_estimate=True
         )
+        await deployer_config.account.client.wait_for_tx(tx.hash)
+        curr_time = await deployed_time_oracle_contract.functions["get_time"].call()
+        assert curr_time[0] == 1708907270
+
         ## check nft id 2 is owned by account address 2
-        assert hex(nft_id_2_owner) == ACCOUNT_ADDRESS_2
-        controller_call = await deployed_vault_contract.functions["get_controller"].call(deposited_contract_address=flat_contract_address)
-        current_controller = hex(controller_call[0])
-        assert current_controller == ACCOUNT_ADDRESS_2
+        controller_call_2 = await deployed_vault_contract.functions["get_controller"].call(deposited_contract_address=flat_contract_address)
+        current_controller_2 = hex(controller_call_2[0])
+        assert current_controller_2 == ACCOUNT_ADDRESS_2
 
         key_pair_account_2 = KeyPair.from_private_key(config("UT_PRIVATE_KEY"))
         client_account_2 = FullNodeClient(node_url=config("DEV_NODE_URL"))
@@ -171,17 +195,18 @@ async def test():
             key_pair=key_pair_account_2,
             chain=StarknetChainId.GOERLI
         )
-        deployed_vault_contract = await Contract.from_address(deployed_vault_contract.address, provider=account_account_2)
-        call_function_invocation = await deployed_vault_contract.functions["call_function"].invoke_v3(
+        deployed_vault_contract_for_account_2 = await Contract.from_address(deployed_vault_contract.address, provider=account_account_2)
+        call_function_invocation = await deployed_vault_contract_for_account_2.functions["call_function"].invoke_v3(
             contract_address=flat_contract_address,
             function_selector=int(FUNCTION_SELECTOR, 16),
             call_data=[],
             auto_estimate=True
         )
-        get_flat_door_state = await deployed_flat_contract.functions["get_door_state"].call()
+        get_flat_door_state = await flat_contract.functions["get_door_state"].call()
         assert get_flat_door_state[0] == False
-        
-    print()
+
+    deposited_contracts = await deployed_vault_contract.functions["get_deposited_contracts"].call()
+    assert deposited_contracts[0] == flats
 
 if __name__ == "__main__":
 
