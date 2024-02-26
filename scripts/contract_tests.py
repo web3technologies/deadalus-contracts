@@ -127,7 +127,7 @@ async def test():
         )
         nft_id_2_owner = await nft_contract.functions["owner_of"].call(2)
         nft_id_2_owner = nft_id_2_owner[0]
-        tx = await deployed_time_oracle_contract.functions["se  t_time"].invoke_v3(
+        tx = await deployed_time_oracle_contract.functions["set_time"].invoke_v3(
             unix_timestamp=1708907270,
             auto_estimate=True
         )
