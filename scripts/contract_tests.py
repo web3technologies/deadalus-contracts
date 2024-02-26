@@ -1,7 +1,13 @@
 import asyncio
-from deploy_modules import DeployerConfig, InitializeContractData, DeclareContract, DeployContract
+from decouple import config
 
 from starknet_py.contract import Contract
+from starknet_py.net.account.account import Account
+from starknet_py.net.full_node_client import FullNodeClient
+from starknet_py.net.signer.stark_curve_signer import KeyPair
+from starknet_py.net.models import StarknetChainId
+
+from deploy_modules import DeployerConfig, InitializeContractData, DeclareContract, DeployContract
 
 ## address to send second nft and ensure caller works properly
 ACCOUNT_ADDRESS_2 = "0x3805b27d17d628cc06463b7feb71a9373524d15b44117ce9e68208783bce30c"
@@ -157,14 +163,23 @@ async def test():
         current_controller = hex(controller_call[0])
         assert current_controller == ACCOUNT_ADDRESS_2
 
-        # this should fail because no longer the owner
-        # call_function_invocation = await deployed_vault_contract.functions["call_function"].invoke_v3(
-        #     contract_address=flat_contract_address,
-        #     function_selector=int(FUNCTION_SELECTOR, 16),
-        #     call_data=[],
-        #     auto_estimate=True
-        # )
-        
+        key_pair_account_2 = KeyPair.from_private_key(config("UT_PRIVATE_KEY"))
+        client_account_2 = FullNodeClient(node_url=config("DEV_NODE_URL"))
+        account_account_2 = Account(
+            address=ACCOUNT_ADDRESS_2,
+            client=client_account_2,
+            key_pair=key_pair_account_2,
+            chain=StarknetChainId.GOERLI
+        )
+        deployed_vault_contract = await Contract.from_address(deployed_vault_contract.address, provider=account_account_2)
+        call_function_invocation = await deployed_vault_contract.functions["call_function"].invoke_v3(
+            contract_address=flat_contract_address,
+            function_selector=int(FUNCTION_SELECTOR, 16),
+            call_data=[],
+            auto_estimate=True
+        )
+        get_flat_door_state = await deployed_flat_contract.functions["get_door_state"].call()
+        assert get_flat_door_state[0] == False
         
     print()
 
