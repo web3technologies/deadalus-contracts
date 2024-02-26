@@ -31,6 +31,7 @@ trait IFractionVault<TContractState>{
     fn get_function(self: @TContractState, selector: felt252) -> ContractFunction;
     fn get_deposited_contracts(self: @TContractState) -> Array<ContractAddress>;
     fn get_contract_id(self: @TContractState) -> u256;
+    fn get_oracle_address(self: @TContractState) -> ContractAddress;
 }
 
 
@@ -212,6 +213,11 @@ mod FractionVault {
         fn get_contract_id(self: @ContractState) -> u256{
             self.contract_id.read()
         }
+
+        fn get_oracle_address(self: @ContractState) -> ContractAddress{
+            self.time_oracle_address.read()
+        }
+
 
         fn get_deposited_contracts(self: @ContractState) -> Array<ContractAddress>{
             let mut arr1 = ArrayTrait::<ContractAddress>::new();
