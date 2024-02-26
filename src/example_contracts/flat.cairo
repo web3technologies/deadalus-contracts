@@ -67,8 +67,7 @@ mod Flat {
         fn withdraw(ref self: ContractState, amount: u256, contract_address: ContractAddress) {
             self.ownable.assert_only_owner();
             let dispatcher = ERC20ABIDispatcher { contract_address };
-            let owner = self.owner();
-            dispatcher.approve(owner, amount);
+            let owner = self.ownable.owner();
             dispatcher.transfer(owner, amount);
         }
     }
