@@ -101,6 +101,7 @@ async def test():
         }
     )
     deployed_vault_contract = await deployer.deploy()
+
     for idx, flat_contract_address in enumerate(flats):
 
         # set oracle time
@@ -132,6 +133,10 @@ async def test():
             require_owner=True,
             auto_estimate=True
         )
+
+        # function_exists = await deployed_vault_contract.functions["get_function"].call(
+        #     FUNCTION_SELECTOR
+        # )
 
         get_contract_id = await deployed_vault_contract.functions["get_contract_id"].call()
         assert get_contract_id[0] == idx + 1
