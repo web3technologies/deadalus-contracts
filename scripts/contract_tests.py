@@ -1,11 +1,15 @@
 import asyncio
-import argparse
 from deploy_modules import DeployerConfig, InitializeContractData, DeclareContract, DeployContract
 
+from starknet_py.contract import Contract
+
+## address to send second nft and ensure caller works properly
+ACCOUNT_ADDRESS_2 = "0x3805b27d17d628cc06463b7feb71a9373524d15b44117ce9e68208783bce30c"
 
 async def test():
 
     deployer_config = DeployerConfig.get_config('dev', "GOERLI").init_account()
+
 
     ### NFT Declare
     print("Delcaring NFT Contract")
@@ -68,7 +72,7 @@ async def test():
     deployed_time_oracle_contract = await deployer.deploy()
     print(f"Deployed TimeOracle Contract to address: {hex(deployed_time_oracle_contract.address)}")
     tx = await deployed_time_oracle_contract.functions["set_time"].invoke_v3(
-        unix_timestamp=1708907260,
+        unix_timestamp=1708907167,
         auto_estimate=True
     )
     await deployer_config.account.client.wait_for_tx(tx.hash)
@@ -101,8 +105,39 @@ async def test():
             **{"deposit_contract_address": flat_contract_address},
             auto_estimate=True
         )
-        caller_return = await deployed_vault_contract.functions["get_controller"].call(deposited_contract_address=flat_contract_address)
-        print()
+        ## then need to transfer nft to address 2
+        ## then check caller is id 1
+        ## then update time > 30 and assert controller is address 2
+        controller_call = await deployed_vault_contract.functions["get_controller"].call(deposited_contract_address=flat_contract_address)
+        current_controller = hex(controller_call[0])
+        assert current_controller == deployer_config.account_address
+        
+        # transfer nft 2 to a new user
+        # then call the oracle to update time
+        # then owner of nft2 should be the current controller
+        get_nft_address_call = await deployed_vault_contract.functions["get_nft_address"].call(deposited_contract_address=flat_contract_address)
+        nft_contract = await Contract.from_address(address=get_nft_address_call[0], provider=deployer_config.account)
+        transfer_nft = await nft_contract.functions["transfer_from"].invoke_v3(
+            **{
+                "from":int(deployer_config.account_address,16), 
+                "to": int(ACCOUNT_ADDRESS_2,16), 
+                "token_id": 2
+            },
+            auto_estimate=True
+        )
+        nft_id_2_owner = await nft_contract.functions["owner_of"].call(2)
+        nft_id_2_owner = nft_id_2_owner[0]
+        tx = await deployed_time_oracle_contract.functions["se  t_time"].invoke_v3(
+            unix_timestamp=1708907270,
+            auto_estimate=True
+        )
+        ## check nft id 2 is owned by account address 2
+        assert hex(nft_id_2_owner) == ACCOUNT_ADDRESS_2
+        controller_call = await deployed_vault_contract.functions["get_controller"].call(deposited_contract_address=flat_contract_address)
+        current_controller = hex(controller_call[0])
+        assert current_controller == ACCOUNT_ADDRESS_2
+        
+        
     print()
 
 if __name__ == "__main__":

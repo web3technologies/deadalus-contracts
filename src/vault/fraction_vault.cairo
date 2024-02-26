@@ -2,7 +2,7 @@ use starknet::ContractAddress;
 use starknet::ClassHash;
 
 
-#[derive(Copy, Drop, starknet::Store)]
+#[derive(Copy, Drop,Serde,starknet::Store)]
 struct ContractFunction{
     selector: felt252,
     require_owner: bool
@@ -23,10 +23,12 @@ trait IFractionVault<TContractState>{
     fn deposit_contract(
         ref self: TContractState,
             deposit_contract_address: ContractAddress
-        );
+        ) -> ContractAddress;
     fn call_function(ref self: TContractState, contract_address: ContractAddress, function_selector: felt252, call_data: Array<felt252>);
     fn add_function(ref self: TContractState, function_selector: felt252, require_owner: bool);
     fn get_controller(self: @TContractState, deposited_contract_address: ContractAddress) -> ContractAddress;
+    fn get_nft_address(self: @TContractState, deposited_contract_address: ContractAddress) -> ContractAddress;
+    fn get_function(self: @TContractState, selector: felt252) -> ContractFunction;
 }
 
 
@@ -93,7 +95,7 @@ mod FractionVault {
         fn deposit_contract(
             ref self: ContractState, 
                 deposit_contract_address: ContractAddress
-            ){
+            ) -> ContractAddress{
                 let current_caller = get_caller_address();
                 // deploy nft contract
                 let num_nft: u256 = 2;
@@ -107,16 +109,17 @@ mod FractionVault {
                     nft_call_data.span(),
                     true
                 );
-                match deploy_result {
+                let nft_address: ContractAddress = match deploy_result {
                     Result::Ok((_nft_contract_address, _return_data)) =>{
                         self.deposited_contracts_to_nft_contract.write(deposit_contract_address, _nft_contract_address);
                         self.emit(ContractDeposit{contract: deposit_contract_address, nft_contract:_nft_contract_address});
+                        _nft_contract_address
                     },
                     Result::Err(_) => {
-                        panic!("error in deploy");
+                        panic!("error in deploy")
                     }
-                }
-                
+                };
+                nft_address
         }
         
         fn call_function(
@@ -171,8 +174,8 @@ mod FractionVault {
                     panic!("failure in call")
                 }
             };
-            let time_result_unix_interval = current_unix_time % 60;
-            let nft_id: u256 = if time_result_unix_interval > 30 {
+            let time_result_unix_interval = current_unix_time % 90;
+            let nft_id: u256 = if time_result_unix_interval > 45 {
                 let nft_id: u256 = 2;
                 nft_id
             } else{
@@ -190,6 +193,14 @@ mod FractionVault {
             let tmp = *address.at(0);
             let nft_owner_address: ContractAddress = tmp.try_into().unwrap();
             nft_owner_address
+        }
+
+        fn get_nft_address(self: @ContractState, deposited_contract_address: ContractAddress) -> ContractAddress{
+            self.deposited_contracts_to_nft_contract.read(deposited_contract_address)
+        }
+
+        fn get_function(self: @ContractState, selector: felt252) -> ContractFunction{
+            self.functions.read(selector)
         }
     }
     
