@@ -48,6 +48,32 @@ async def test():
         print('deployed')
         flats.append(deployed_flat_contract.address)
 
+    ### TimeOracle
+    print("Declaring TimeOracle Contract")
+    initialized_time_oracle_contract = InitializeContractData(contract_name="TimeOracle")
+    casm_class_hash_time_oracle, compiled_contract_time_oracle, sierra_class_hash_time_oracle = initialized_time_oracle_contract.read_contract_file_data()
+    declared_time_oracle_contract = DeclareContract(
+        deployer_config,
+        casm_class_hash_time_oracle,
+        compiled_contract_time_oracle,
+        sierra_class_hash_time_oracle
+    )
+    declared_time_oracle_contract = await declared_time_oracle_contract.get_contract()
+    print("Declared TimeOracle Contract")
+    deployer = DeployContract(
+        declared_time_oracle_contract,
+        deployer_config,
+        sierra_class_hash_time_oracle,
+        constructor_args={}
+    )
+    deployed_time_oracle_contract = await deployer.deploy()
+    print(f"Deployed TimeOracle Contract to address: {hex(deployed_time_oracle_contract.address)}")
+    tx = await deployed_time_oracle_contract.functions["set_time"].invoke_v3(
+        unix_timestamp=1708907260,
+        auto_estimate=True
+    )
+    await deployer_config.account.client.wait_for_tx(tx.hash)
+    print("oracle updated")
 
     ### vault 
     print("Declaring FractionVault Contract")
@@ -66,16 +92,17 @@ async def test():
         deployer_config,
         sierra_class_hash_faction_vault,
         constructor_args={
-            "time_oracle_address": '',
+            "time_oracle_address": deployed_time_oracle_contract.address,
             "nft_contract_class_hash": sierra_class_hash_nft
         }
     )
     deployed_vault_contract = await deployer.deploy()
     for flat_contract_address in flats:
         invocation = await deployed_vault_contract.functions["deposit_contract"].invoke_v3(
-            **{"deposit_contract_address": int(hex(flat_contract_address),16)},
+            **{"deposit_contract_address": flat_contract_address},
             auto_estimate=True
         )
+        caller_return = await deployed_vault_contract.functions["get_controller"].call(deposited_contract_address=flat_contract_address)
         print()
     print()
 

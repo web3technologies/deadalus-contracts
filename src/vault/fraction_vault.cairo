@@ -26,7 +26,7 @@ trait IFractionVault<TContractState>{
         );
     fn call_function(ref self: TContractState, contract_address: ContractAddress, function_selector: felt252, call_data: Array<felt252>);
     fn add_function(ref self: TContractState, function_selector: felt252, require_owner: bool);
-    fn get_controller(ref self: TContractState, deposited_contract_address: ContractAddress) -> ContractAddress;
+    fn get_controller(self: @TContractState, deposited_contract_address: ContractAddress) -> ContractAddress;
 }
 
 
@@ -74,7 +74,6 @@ mod FractionVault {
         deposited_contracts_to_nft_contract: LegacyMap::<ContractAddress, ContractAddress>,
         functions: LegacyMap::<felt252, ContractFunction>, // map the function name to the function selector hash
         time_oracle_address: ContractAddress,
-        time_oracle_selector: felt252,
         nft_contract_class_hash: ClassHash
     }
 
@@ -152,19 +151,33 @@ mod FractionVault {
         }
 
         fn get_controller(
-            ref self: ContractState, 
+            self: @ContractState, 
             deposited_contract_address: ContractAddress
         ) -> ContractAddress{
             let oracle_address = self.time_oracle_address.read();
-            let dispatcher = ITimeOracleDispatcher{contract_address: oracle_address};
-            let let_time_result_uinx_interval = dispatcher.get_time()  % 60;
-            let nft_address = self.deposited_contracts_to_nft_contract.read(deposited_contract_address);
-            let mut nft_id = '1';
-            if let_time_result_uinx_interval > 30 {
-                nft_id = '2';
+            // // let dispatcher = ITimeOracleDispatcher{contract_address: oracle_address};
+            let oracle_call = call_contract_syscall(
+                oracle_address,     
+                selector!("get_time"), 
+                array![].span()
+            );
+            let current_unix_time: u256 = match oracle_call{
+                Result::Ok(return_span) =>{
+                    let casted_time = *return_span.at(0);
+                    let new_time: u256 = casted_time.try_into().unwrap();
+                    new_time
+                },
+                Result::Err(_)=>{
+                    panic!("failure in call")
+                }
+            };
+            let let_time_result_unix_interval = current_unix_time % 60;
+            let mut nft_id = 1;
+            if let_time_result_unix_interval > 30 {
+                nft_id = 2;
             };
             let result = call_contract_syscall(
-                nft_address,     
+                self.deposited_contracts_to_nft_contract.read(deposited_contract_address),     
                 selector!("ownerOf"),
                 array![nft_id].span()
             );

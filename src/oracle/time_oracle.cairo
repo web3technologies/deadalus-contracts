@@ -1,7 +1,7 @@
 #[starknet::interface]
 trait ITimeOracle<TContractState>{
     fn set_time(ref self: TContractState, unix_timestamp: u256);
-    fn get_time(ref self: TContractState) -> u256;
+    fn get_time(self: @TContractState) -> u256;
 }
 
 #[starknet::contract]
@@ -23,7 +23,7 @@ mod TimeOracle{
             self.unix_time.write(unix_timestamp);
         }
 
-        fn get_time(ref self: ContractState) -> u256{
+        fn get_time(self: @ContractState) -> u256{
             self.unix_time.read()
         }
     }
