@@ -67,7 +67,6 @@ mod FractionVault {
 
     #[derive(Drop, starknet::Event)]
     struct ContractDeposit {
-        #[key]
         contract: ContractAddress,
         nft_contract: ContractAddress
     }
