@@ -27,6 +27,7 @@ mod Flat {
         image: felt252,
         door_open: bool,
         property_address: felt252,
+        image_array: Span<felt252>,
         #[substorage(v0)]
         ownable: OwnableComponent::Storage,
     }
