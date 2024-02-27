@@ -21,4 +21,10 @@ async def update_oracle(deploy_env, contract_address, chain):
         await deployer_config.account.client.wait_for_tx(tx.hash)
         contract_time = await oracle_contract.functions["get_time"].call()
         print(f"Current contract time is: {contract_time[0]}")
+        div = contract_time[0] % 90
+        if div > 45:
+            print("2 is owner")
+        else:
+            print("1 is owner")
+
 
