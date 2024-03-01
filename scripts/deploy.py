@@ -1,5 +1,7 @@
 import asyncio
 import argparse
+from pathlib import Path
+
 
 from starknet_simple_deploy import (
     DeclareContract,
@@ -17,6 +19,7 @@ async def main(deploy_env, chain, deploy_oracle=False):
         main deployment script that will declare, deploy and write the contract data
     """
     deployer_config = DeployerConfig.get_config(deploy_env, chain).init_account()
+    base_output_path = Path.cwd() / f"deadalus-interface/src/contracts"
 
     ### NFT Declare
     print("Delcaring NFT Contract")
@@ -31,6 +34,7 @@ async def main(deploy_env, chain, deploy_oracle=False):
     declared_nft_contract = await declared_nft_contract.get_contract()
     print("Declared NFT Contract")
     ContractDataWriter.write_data(
+        base_output_path,
         deploy_env=args.deploy_env, 
         abi=get_abi(declared_nft_contract),
         chain_id=deployer_config.chain_id,
@@ -52,6 +56,7 @@ async def main(deploy_env, chain, deploy_oracle=False):
     declared_flat_contract = await declared_flat_contract.get_contract()
     print("Declared Flat Contract")
     ContractDataWriter.write_data(
+        base_output_path,
         deploy_env=args.deploy_env, 
         abi=get_abi(declared_flat_contract),
         chain_id=deployer_config.chain_id,
@@ -82,6 +87,7 @@ async def main(deploy_env, chain, deploy_oracle=False):
     deployed_flat_factory_contract = await deployer.deploy()
     print(f"Deployed FlatFactory to address: {hex(deployed_flat_factory_contract.address)}")
     ContractDataWriter.write_data(
+        base_output_path,
         deploy_env=args.deploy_env,
         abi=get_abi(declared_flat_contract),
         chain_id=deployer_config.chain_id,
@@ -116,6 +122,7 @@ async def main(deploy_env, chain, deploy_oracle=False):
     deployed_time_oracle_contract = await deployer.deploy()
     print(f"Deployed TimeOracle Contract to address: {hex(deployed_time_oracle_contract.address)}")
     ContractDataWriter.write_data(
+        base_output_path,
         deploy_env=args.deploy_env, 
         abi=get_abi(declared_time_oracle_contract),
         chain_id=deployer_config.chain_id,
@@ -148,6 +155,7 @@ async def main(deploy_env, chain, deploy_oracle=False):
     deployed_vault_contract = await deployer.deploy()
     print(f"Deployed FractionVault Contract to address: {hex(deployed_vault_contract.address)}")
     ContractDataWriter.write_data(
+        base_output_path,
         deploy_env=args.deploy_env, 
         abi=get_abi(declared_vault_contract),
         chain_id=deployer_config.chain_id,
