@@ -1,8 +1,9 @@
-# Starknet Foundry Template
+# Deadalus Contracts
 
-## Overview
+## Starknet Denver 2024 Hacker House
 
-## Dependencies
+This project represents the contracts I developed during the Starknet Denver 2024 Hacker House on Team Deadalus.
 
-- scarb 2.5.3
-- starknet-foundry 0.15.0
+The contracts allow a user to deposit an asset into the vault contract and fractionalize it into many nfts. The nft's represent control over the contract over a given period of time. The Vault acts as a proxy and perform validation on who has control over a given time period. A custom oracle has been developed in order to gather the correct time.
+
+Here is the official project repository: https://github.com/orgs/deadalus-labs/repositories

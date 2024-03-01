@@ -1,5 +1,4 @@
 mod example_contracts {
-    mod counter;
     mod flat_factory;
     mod flat;
 }
@@ -15,4 +14,3 @@ mod oracle {
 mod utils {
     mod storage;
 }
-
