@@ -20,6 +20,7 @@ pycryptodome==3.20.0
 python-decouple==3.8
 six==1.16.0
 starknet-py==0.19.0
+starknet-simple-deploy==0.1.2
 sympy==1.11.1
 toml==0.10.2
 typing-inspect==0.9.0

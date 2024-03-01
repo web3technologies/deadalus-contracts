@@ -7,7 +7,8 @@ from starknet_py.net.full_node_client import FullNodeClient
 from starknet_py.net.signer.stark_curve_signer import KeyPair
 from starknet_py.net.models import StarknetChainId
 
-from deploy_modules import DeployerConfig, InitializeContractData, DeclareContract, DeployContract
+from starknet_simple_deploy import DeployerConfig, InitializeContractData, DeclareContract, DeployContract
+
 
 ## address to send second nft and ensure caller works properly
 ACCOUNT_ADDRESS_2 = "0x3805b27d17d628cc06463b7feb71a9373524d15b44117ce9e68208783bce30c"

@@ -1,10 +1,7 @@
 import asyncio
 import argparse
-import json
 
-from starknet_py.contract import DeclareResult
-
-from deploy_modules import (
+from starknet_simple_deploy import (
     DeclareContract,
     DeployContract, 
     DeployerConfig, 
@@ -12,9 +9,7 @@ from deploy_modules import (
     InitializeContractData,
     Erc20Contract
 )
-
-
-get_abi = lambda contract: contract._get_abi() if isinstance(contract, DeclareResult) else json.loads(contract.abi)
+from starknet_simple_deploy.utils import get_abi
 
 
 async def main(deploy_env, chain, deploy_oracle=False):
